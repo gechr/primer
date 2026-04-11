@@ -24,6 +24,7 @@ type Styles struct {
 type Renderer struct {
 	Styles Styles
 	Gap    string
+	Prefix *string
 	Width  int
 	Inline bool
 }
@@ -48,11 +49,16 @@ func (r Renderer) Render(hints []Hint) string {
 		)
 	}
 
-	if r.Width <= 0 {
-		return " " + strings.Join(parts, gap)
+	prefix := " "
+	if r.Prefix != nil {
+		prefix = *r.Prefix
 	}
 
-	const indent = " "
+	if r.Width <= 0 {
+		return prefix + strings.Join(parts, gap)
+	}
+
+	indent := prefix
 	var lines []string
 	var line string
 	lineWidth := len(indent)
