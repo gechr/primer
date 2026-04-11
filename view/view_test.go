@@ -52,7 +52,7 @@ func TestRenderFrameFillsTerminalRectangle(t *testing.T) {
 		Header: "Header",
 		Footer: "Footer",
 		Lines:  lines,
-		VP:     vp,
+		View:   vp,
 		Width:  12,
 		Height: 7,
 		Styles: view.FrameStyles{

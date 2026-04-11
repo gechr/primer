@@ -23,6 +23,61 @@ func TestNormalizeLineTruncatesToWidth(t *testing.T) {
 	require.Equal(t, "abcd", got)
 }
 
+func TestNormalizeLines(t *testing.T) {
+	got := layout.NormalizeLines([]string{"ab", "cdef"}, 4)
+
+	require.Len(t, got, 2)
+	require.Equal(t, 4, ansi.WcWidth.StringWidth(got[0]))
+	require.Equal(t, 4, ansi.WcWidth.StringWidth(got[1]))
+}
+
+func TestNormalizeLinesNil(t *testing.T) {
+	require.Nil(t, layout.NormalizeLines(nil, 10))
+}
+
+func TestWrapLines(t *testing.T) {
+	got := layout.WrapLines("abcdef\nghij", 4)
+
+	require.Len(t, got, 3)
+	require.Equal(t, "abcd", got[0])
+}
+
+func TestWrapLinesExpandsTabs(t *testing.T) {
+	got := layout.WrapLines("\thello", 0)
+
+	require.Len(t, got, 1)
+	require.Contains(t, got[0], "    hello")
+}
+
+func TestHardWrapNoOp(t *testing.T) {
+	got := layout.HardWrap("short", 80)
+
+	require.Len(t, got, 1)
+	require.Equal(t, "short", got[0])
+}
+
+func TestHardWrapSplits(t *testing.T) {
+	got := layout.HardWrap("abcdefgh", 4)
+
+	require.Greater(t, len(got), 1)
+}
+
+func TestSeparatorPlain(t *testing.T) {
+	got := layout.Separator(5, -1)
+
+	require.Equal(t, "─────", got)
+}
+
+func TestSeparatorWithJunction(t *testing.T) {
+	got := layout.Separator(5, 2)
+
+	require.Equal(t, "──┬──", got)
+}
+
+func TestExpandTabs(t *testing.T) {
+	require.Equal(t, "    x", layout.ExpandTabs("\tx"))
+}
+
 func TestFillPadsToHeight(t *testing.T) {
 	got := layout.Fill("left\tright", 12, 2)
 

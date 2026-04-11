@@ -2,6 +2,8 @@ module github.com/gechr/primer
 
 go 1.26.2
 
+tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+
 require (
 	charm.land/bubbles/v2 v2.1.0
 	charm.land/bubbletea/v2 v2.0.2
@@ -232,5 +234,3 @@ require (
 	mvdan.cc/gofumpt v0.9.2 // indirect
 	mvdan.cc/unparam v0.0.0-20251027182757-5beb8c8f8f15 // indirect
 )
-
-tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint

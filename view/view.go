@@ -17,14 +17,14 @@ type FrameStyles struct {
 }
 
 type FrameModel struct {
-	Header    string
 	Footer    string
-	Lines     []string
-	VP        viewport.Model
-	Width     int
+	Header    string
 	Height    int
-	Styles    FrameStyles
+	Lines     []string
 	Separator string
+	Styles    FrameStyles
+	View      viewport.Model
+	Width     int
 }
 
 func (m FrameModel) separator() string {
@@ -93,15 +93,15 @@ func RenderFrame(m FrameModel) string {
 		b.WriteString(nl)
 	}
 
-	totalLines := m.VP.TotalLineCount()
-	vpHeight := m.VP.Height()
+	totalLines := m.View.TotalLineCount()
+	vpHeight := m.View.Height()
 	switch {
 	case vpHeight <= 0:
 		b.WriteString(nl)
 	case totalLines > vpHeight:
-		b.WriteString(RenderContent(m.Lines, m.VP, true, m.Styles.Scrollbar))
+		b.WriteString(RenderContent(m.Lines, m.View, true, m.Styles.Scrollbar))
 	default:
-		b.WriteString(RenderContent(m.Lines, m.VP, false, m.Styles.Scrollbar))
+		b.WriteString(RenderContent(m.Lines, m.View, false, m.Styles.Scrollbar))
 	}
 	b.WriteString(nl)
 

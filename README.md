@@ -12,7 +12,7 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `helpbar`        | Wrapped footer hints with right-aligned status text                        |
 | `helpsheet`      | Two-column keybinding overlay sheet with dismiss footer                    |
 | `keyhint`        | Inline key-highlight rendering for help bars                               |
-| `layout`         | Line normalization and terminal-width padding                              |
+| `layout`         | Line normalization, ANSI-aware hard wrapping, and separator rendering      |
 | `overlay`        | Centered foreground placement over background content                      |
 | `prompt`         | Scrollable modal prompts with choice groups, hints, and interaction state  |
 | `render`         | Terminal markdown (glamour) and diff (chroma) rendering                    |
