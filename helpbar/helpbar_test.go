@@ -7,18 +7,18 @@ import (
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/gechr/primer/helpbar"
-	"github.com/gechr/primer/keyhint"
+	"github.com/gechr/primer/key"
 	"github.com/stretchr/testify/require"
 )
 
 func TestModelLines(t *testing.T) {
 	m := helpbar.Model{
-		Hints: []keyhint.Hint{
+		Hints: []key.Hint{
 			{Key: "a", Desc: "approve"},
 			{Key: "c", Desc: "comment"},
 		},
-		Renderer: keyhint.Renderer{
-			Styles: keyhint.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
+		Renderer: key.Renderer{
+			Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
 			Width:  12,
 			Inline: true,
 		},
@@ -30,12 +30,12 @@ func TestModelLines(t *testing.T) {
 
 func TestModelRenderRightAlignsStatusWithoutAddingLines(t *testing.T) {
 	m := helpbar.Model{
-		Hints: []keyhint.Hint{
+		Hints: []key.Hint{
 			{Key: "up/down", Desc: "scroll"},
 			{Key: "c", Desc: "comment"},
 		},
-		Renderer: keyhint.Renderer{
-			Styles: keyhint.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
+		Renderer: key.Renderer{
+			Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
 			Width:  24,
 			Inline: true,
 		},
@@ -53,9 +53,9 @@ func TestModelRenderRightAlignsStatusWithoutAddingLines(t *testing.T) {
 func TestModelRenderPreservesANSIInDescription(t *testing.T) {
 	on := lg.NewStyle().Foreground(lg.Color("2")).Render("on")
 	m := helpbar.Model{
-		Hints: []keyhint.Hint{{Key: "r", Desc: "refresh " + on}},
-		Renderer: keyhint.Renderer{
-			Styles: keyhint.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
+		Hints: []key.Hint{{Key: "r", Desc: "refresh " + on}},
+		Renderer: key.Renderer{
+			Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
 			Width:  80,
 		},
 		Width: 80,

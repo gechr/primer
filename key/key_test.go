@@ -1,4 +1,4 @@
-package keyhint_test
+package key_test
 
 import (
 	"strings"
@@ -6,27 +6,27 @@ import (
 
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/gechr/primer/keyhint"
+	"github.com/gechr/primer/key"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInlineSingleLetter(t *testing.T) {
-	rendered, ok := keyhint.Inline("a", "approve", lg.NewStyle(), lg.NewStyle())
+	rendered, ok := key.Inline("a", "approve", lg.NewStyle(), lg.NewStyle())
 
 	require.True(t, ok)
 	require.Equal(t, "approve", ansi.Strip(rendered))
 }
 
 func TestInlineModifiedKey(t *testing.T) {
-	rendered, ok := keyhint.Inline("alt+c", "copy", lg.NewStyle(), lg.NewStyle())
+	rendered, ok := key.Inline("alt+c", "copy", lg.NewStyle(), lg.NewStyle())
 
 	require.True(t, ok)
 	require.Equal(t, "alt+copy", ansi.Strip(rendered))
 }
 
 func TestRendererWrapsAtWidth(t *testing.T) {
-	r := keyhint.Renderer{
-		Styles: keyhint.Styles{
+	r := key.Renderer{
+		Styles: key.Styles{
 			Key:  lg.NewStyle(),
 			Text: lg.NewStyle(),
 		},
@@ -34,7 +34,7 @@ func TestRendererWrapsAtWidth(t *testing.T) {
 		Inline: true,
 	}
 
-	got := r.Render([]keyhint.Hint{
+	got := r.Render([]key.Hint{
 		{Key: "a", Desc: "approve"},
 		{Key: "c", Desc: "comment"},
 	})

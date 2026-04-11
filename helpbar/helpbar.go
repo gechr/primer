@@ -5,7 +5,7 @@ import (
 
 	lg "charm.land/lipgloss/v2"
 	xansi "github.com/charmbracelet/x/ansi"
-	"github.com/gechr/primer/keyhint"
+	"github.com/gechr/primer/key"
 )
 
 const (
@@ -14,8 +14,8 @@ const (
 )
 
 type Model struct {
-	Hints    []keyhint.Hint
-	Renderer keyhint.Renderer
+	Hints    []key.Hint
+	Renderer key.Renderer
 	Status   string
 	Width    int
 	Ellipsis string

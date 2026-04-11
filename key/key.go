@@ -1,4 +1,4 @@
-package keyhint
+package key
 
 import (
 	"strings"
