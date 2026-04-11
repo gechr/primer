@@ -78,6 +78,31 @@ func TestExpandTabs(t *testing.T) {
 	require.Equal(t, "    x", layout.ExpandTabs("\tx"))
 }
 
+func TestPreserveBackgroundPreservesVisibleText(t *testing.T) {
+	line := "\x1b[32mhello\x1b[0m"
+
+	got := layout.PreserveBackground(line, "\x1b[41m")
+
+	require.Equal(t, "hello", ansi.Strip(got))
+	require.True(t, strings.HasPrefix(got, "\x1b[41m"))
+	require.True(t, strings.HasSuffix(got, "\x1b[0m"))
+}
+
+func TestPreserveBackgroundReappliesAfterSGR(t *testing.T) {
+	line := "\x1b[32mhello\x1b[0m"
+
+	got := layout.PreserveBackground(line, "\x1b[41m")
+
+	require.GreaterOrEqual(t, strings.Count(got, "\x1b[41m"), 2)
+}
+
+func TestPreserveBackgroundWidthPadsVisibleWidth(t *testing.T) {
+	got := layout.PreserveBackgroundWidth("abc", "\x1b[41m", 5)
+
+	require.Equal(t, 5, ansi.WcWidth.StringWidth(ansi.Strip(got)))
+	require.True(t, strings.HasSuffix(got, "\x1b[0m"))
+}
+
 func TestFillPadsToHeight(t *testing.T) {
 	got := layout.Fill("left\tright", 12, 2)
 
