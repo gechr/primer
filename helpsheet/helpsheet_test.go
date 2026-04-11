@@ -6,7 +6,7 @@ import (
 
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	helpsheet "github.com/gechr/primer/help/sheet"
+	"github.com/gechr/primer/helpsheet"
 	"github.com/stretchr/testify/require"
 )
 

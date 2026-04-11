@@ -54,6 +54,34 @@ func Markdown(text string, width int, style string) string {
 	return strings.TrimRight(rendered, "\n")
 }
 
+// Diff highlights a unified diff string using chroma syntax highlighting.
+// Returns the input unchanged if highlighting fails.
+func Diff(text string) string {
+	if text == "" {
+		return ""
+	}
+
+	lexer := lexers.Get("diff")
+	if lexer == nil {
+		return text
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	style := styles.Get("monokai")
+	formatter := formatters.TTY256
+
+	iterator, err := lexer.Tokenise(nil, text)
+	if err != nil {
+		return text
+	}
+
+	var buf bytes.Buffer
+	if err := formatter.Format(&buf, style, iterator); err != nil {
+		return text
+	}
+	return buf.String()
+}
+
 // resolveRenderer returns a cached or freshly created renderer.
 // Caller must hold glamourCache.mu.
 func resolveRenderer(width int, style string) *glamour.TermRenderer {
@@ -96,32 +124,4 @@ func plainFallback(text string, width int) string {
 		}
 	}
 	return sb.String()
-}
-
-// Diff highlights a unified diff string using chroma syntax highlighting.
-// Returns the input unchanged if highlighting fails.
-func Diff(text string) string {
-	if text == "" {
-		return ""
-	}
-
-	lexer := lexers.Get("diff")
-	if lexer == nil {
-		return text
-	}
-	lexer = chroma.Coalesce(lexer)
-
-	style := styles.Get("monokai")
-	formatter := formatters.TTY256
-
-	iterator, err := lexer.Tokenise(nil, text)
-	if err != nil {
-		return text
-	}
-
-	var buf bytes.Buffer
-	if err := formatter.Format(&buf, style, iterator); err != nil {
-		return text
-	}
-	return buf.String()
 }

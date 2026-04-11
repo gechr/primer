@@ -8,7 +8,7 @@ import (
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/gechr/primer/prompt"
-	"github.com/gechr/primer/scroll/bar"
+	"github.com/gechr/primer/scrollbar"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +23,7 @@ func TestRenderScrollableUsesViewportWhenContentOverflows(t *testing.T) {
 		ViewportHeight: 3,
 		ViewWidth:      8,
 		Styles: prompt.Styles{
-			Scrollbar: bar.Styles{
+			Scrollbar: scrollbar.Styles{
 				Thumb: lg.NewStyle(),
 				Track: lg.NewStyle(),
 			},

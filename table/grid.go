@@ -6,6 +6,8 @@ import (
 	xansi "github.com/charmbracelet/x/ansi"
 )
 
+const defaultColumnPadding = 2
+
 // Grid is a table of cell values (rows x columns) with alignment options.
 type Grid struct {
 	Rows          [][]string
@@ -15,8 +17,6 @@ type Grid struct {
 	MaxWidth      int  // terminal width; flex column shrinks to fit (0 = disabled)
 	TTY           bool // when true, wrap spaces in SGR 8 to prevent tab optimization
 }
-
-const defaultColumnPadding = 2
 
 // NewGrid creates a Grid with the given rows and applies any options.
 // Default column padding is 2 spaces, left-aligned.
@@ -31,38 +31,6 @@ func NewGrid(rows [][]string, opts ...GridOption) *Grid {
 		opt(g)
 	}
 	return g
-}
-
-// VisibleWidth computes the visible width of a string, ignoring ANSI escapes.
-func VisibleWidth(s string) int {
-	return xansi.WcWidth.StringWidth(s)
-}
-
-// spaces returns n space characters. When tty is true, the spaces are wrapped
-// in SGR 8 (conceal/hidden) to prevent bubbletea v2's hard-tab cursor
-// optimization from collapsing runs of plain spaces into tab characters.
-func spaces(n int, tty bool) string {
-	if n <= 0 {
-		return ""
-	}
-	s := strings.Repeat(" ", n)
-	if tty {
-		return "\x1b[8m" + s + "\x1b[28m"
-	}
-	return s
-}
-
-// truncateVisible truncates s to maxWidth visible characters, appending "…" if
-// truncated. ANSI escape sequences are preserved but the visible text is cut.
-func truncateVisible(s string, maxWidth int) string {
-	if maxWidth <= 0 {
-		return ""
-	}
-	w := VisibleWidth(s)
-	if w <= maxWidth {
-		return s
-	}
-	return xansi.WcWidth.Truncate(s, maxWidth-1, "…")
 }
 
 // AlignColumns aligns the grid into padded strings with gaps between columns.
@@ -144,4 +112,36 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 		result[i] = sb.String()
 	}
 	return result, colWidths
+}
+
+// VisibleWidth computes the visible width of a string, ignoring ANSI escapes.
+func VisibleWidth(s string) int {
+	return xansi.WcWidth.StringWidth(s)
+}
+
+// spaces returns n space characters. When tty is true, the spaces are wrapped
+// in SGR 8 (conceal/hidden) to prevent bubbletea v2's hard-tab cursor
+// optimization from collapsing runs of plain spaces into tab characters.
+func spaces(n int, tty bool) string {
+	if n <= 0 {
+		return ""
+	}
+	s := strings.Repeat(" ", n)
+	if tty {
+		return "\x1b[8m" + s + "\x1b[28m"
+	}
+	return s
+}
+
+// truncateVisible truncates s to maxWidth visible characters, appending "…" if
+// truncated. ANSI escape sequences are preserved but the visible text is cut.
+func truncateVisible(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	w := VisibleWidth(s)
+	if w <= maxWidth {
+		return s
+	}
+	return xansi.WcWidth.Truncate(s, maxWidth-1, "…")
 }

@@ -1,4 +1,4 @@
-package bar
+package scrollbar
 
 import (
 	"fmt"
@@ -23,6 +23,28 @@ type Model struct {
 	TotalLines int
 	Percent    float64
 	Styles     Styles
+}
+
+// Chars returns the scrollbar as one rendered cell per line.
+func (m Model) Chars() []string {
+	if m.Height <= 0 {
+		return nil
+	}
+	thumbPos, thumbSize := ThumbMetrics(m.Height, m.TotalLines, m.Percent)
+	chars := make([]string, m.Height)
+	for i := range m.Height {
+		if i >= thumbPos && i < thumbPos+thumbSize {
+			chars[i] = m.Styles.Thumb.Render("█")
+			continue
+		}
+		chars[i] = m.Styles.Track.Render("┃")
+	}
+	return chars
+}
+
+// Render returns the scrollbar as a multi-line string.
+func (m Model) Render() string {
+	return strings.Join(m.Chars(), nl)
 }
 
 // Percent returns the scroll position as a percentage in the style of less(1):
@@ -57,26 +79,4 @@ func ThumbMetrics(height, totalLines int, percent float64) (int, int) {
 		thumbPos = int(math.Round(percent * float64(trackSpace)))
 	}
 	return thumbPos, thumbSize
-}
-
-// Chars returns the scrollbar as one rendered cell per line.
-func (m Model) Chars() []string {
-	if m.Height <= 0 {
-		return nil
-	}
-	thumbPos, thumbSize := ThumbMetrics(m.Height, m.TotalLines, m.Percent)
-	chars := make([]string, m.Height)
-	for i := range m.Height {
-		if i >= thumbPos && i < thumbPos+thumbSize {
-			chars[i] = m.Styles.Thumb.Render("█")
-			continue
-		}
-		chars[i] = m.Styles.Track.Render("┃")
-	}
-	return chars
-}
-
-// Render returns the scrollbar as a multi-line string.
-func (m Model) Render() string {
-	return strings.Join(m.Chars(), nl)
 }

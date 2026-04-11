@@ -6,14 +6,14 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	lg "charm.land/lipgloss/v2"
 	"github.com/gechr/primer/layout"
-	"github.com/gechr/primer/scroll/bar"
+	"github.com/gechr/primer/scrollbar"
 )
 
 const nl = "\n"
 
 type FrameStyles struct {
 	Separator lg.Style
-	Scrollbar bar.Styles
+	Scrollbar scrollbar.Styles
 }
 
 type FrameModel struct {
@@ -27,12 +27,19 @@ type FrameModel struct {
 	Separator string
 }
 
-// RenderContent renders viewport lines with an optional single-column bar.
+func (m FrameModel) separator() string {
+	if m.Separator != "" {
+		return m.Separator
+	}
+	return "─"
+}
+
+// RenderContent renders viewport lines with an optional single-column scrollbar.
 func RenderContent(
 	lines []string,
 	vp viewport.Model,
 	withScrollbar bool,
-	scrollStyles bar.Styles,
+	scrollStyles scrollbar.Styles,
 ) string {
 	height := vp.Height()
 	width := max(0, vp.Width())
@@ -44,7 +51,7 @@ func RenderContent(
 	end := min(start+height, len(lines))
 	scrollChars := []string(nil)
 	if withScrollbar {
-		scrollChars = bar.Model{
+		scrollChars = scrollbar.Model{
 			Height:     height,
 			TotalLines: vp.TotalLineCount(),
 			Percent:    vp.ScrollPercent(),
@@ -105,11 +112,4 @@ func RenderFrame(m FrameModel) string {
 	b.WriteString(m.Footer)
 
 	return layout.Fill(b.String(), m.Width, m.Height)
-}
-
-func (m FrameModel) separator() string {
-	if m.Separator != "" {
-		return m.Separator
-	}
-	return "─"
 }

@@ -5,11 +5,11 @@ import (
 
 	"charm.land/bubbles/v2/viewport"
 	lg "charm.land/lipgloss/v2"
-	"github.com/gechr/primer/scroll/bar"
+	"github.com/gechr/primer/scrollbar"
 )
 
 type Styles struct {
-	Scrollbar bar.Styles
+	Scrollbar scrollbar.Styles
 }
 
 type Hint struct {
@@ -134,7 +134,7 @@ func RenderScrollable(m ScrollableModel) string {
 	view.SetHeight(m.ViewportHeight)
 	view.SetContent(m.Content)
 
-	scroll := bar.Model{
+	scroll := scrollbar.Model{
 		Height:     m.ViewportHeight,
 		TotalLines: view.TotalLineCount(),
 		Percent:    view.ScrollPercent(),

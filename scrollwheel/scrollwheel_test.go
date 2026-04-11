@@ -1,4 +1,4 @@
-package wheel_test
+package scrollwheel_test
 
 import (
 	"sync"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/gechr/primer/scroll/wheel"
+	"github.com/gechr/primer/scrollwheel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,13 +32,13 @@ func resolver(m tea.Model) (target, bool) {
 	return s.target, true
 }
 
-func collect(ch chan tea.Msg, timeout time.Duration) []wheel.Msg[target] {
-	var msgs []wheel.Msg[target]
+func collect(ch chan tea.Msg, timeout time.Duration) []scrollwheel.Msg[target] {
+	var msgs []scrollwheel.Msg[target]
 	deadline := time.After(timeout)
 	for {
 		select {
 		case raw := <-ch:
-			if wm, ok := raw.(wheel.Msg[target]); ok {
+			if wm, ok := raw.(scrollwheel.Msg[target]); ok {
 				msgs = append(msgs, wm)
 			}
 		case <-deadline:
@@ -50,8 +50,8 @@ func collect(ch chan tea.Msg, timeout time.Duration) []wheel.Msg[target] {
 func TestSameTargetAccumulation(t *testing.T) {
 	t.Parallel()
 	ch := make(chan tea.Msg, 10)
-	c := wheel.New(resolver, func(msg tea.Msg) { ch <- msg },
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(msg tea.Msg) { ch <- msg },
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	model := stubModel{target: targetList}
@@ -70,8 +70,8 @@ func TestSameTargetAccumulation(t *testing.T) {
 func TestTargetChangeFlushesPrevious(t *testing.T) {
 	t.Parallel()
 	ch := make(chan tea.Msg, 10)
-	c := wheel.New(resolver, func(msg tea.Msg) { ch <- msg },
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(msg tea.Msg) { ch <- msg },
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	listModel := stubModel{target: targetList}
@@ -96,8 +96,8 @@ func TestTargetChangeFlushesPrevious(t *testing.T) {
 func TestStopCancelsPendingFlush(t *testing.T) {
 	t.Parallel()
 	ch := make(chan tea.Msg, 10)
-	c := wheel.New(resolver, func(msg tea.Msg) { ch <- msg },
-		wheel.WithDelay(50*time.Millisecond))
+	c := scrollwheel.New(resolver, func(msg tea.Msg) { ch <- msg },
+		scrollwheel.WithDelay(50*time.Millisecond))
 
 	model := stubModel{target: targetList}
 	down := tea.MouseWheelMsg(tea.Mouse{Button: tea.MouseWheelDown})
@@ -111,8 +111,8 @@ func TestStopCancelsPendingFlush(t *testing.T) {
 
 func TestNonWheelMessagesPassThrough(t *testing.T) {
 	t.Parallel()
-	c := wheel.New(resolver, func(tea.Msg) {},
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(tea.Msg) {},
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	model := stubModel{target: targetList}
@@ -124,8 +124,8 @@ func TestNonWheelMessagesPassThrough(t *testing.T) {
 
 func TestUnresolvableModelPassesThrough(t *testing.T) {
 	t.Parallel()
-	c := wheel.New(resolver, func(tea.Msg) {},
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(tea.Msg) {},
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	model := stubModel{target: 0} // resolver returns false
@@ -138,8 +138,8 @@ func TestUnresolvableModelPassesThrough(t *testing.T) {
 func TestUpDeltaIsNegative(t *testing.T) {
 	t.Parallel()
 	ch := make(chan tea.Msg, 10)
-	c := wheel.New(resolver, func(msg tea.Msg) { ch <- msg },
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(msg tea.Msg) { ch <- msg },
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	model := stubModel{target: targetList}
@@ -156,8 +156,8 @@ func TestUpDeltaIsNegative(t *testing.T) {
 func TestConcurrentFilterCalls(t *testing.T) {
 	t.Parallel()
 	ch := make(chan tea.Msg, 100)
-	c := wheel.New(resolver, func(msg tea.Msg) { ch <- msg },
-		wheel.WithDelay(20*time.Millisecond))
+	c := scrollwheel.New(resolver, func(msg tea.Msg) { ch <- msg },
+		scrollwheel.WithDelay(20*time.Millisecond))
 	defer c.Stop()
 
 	model := stubModel{target: targetList}

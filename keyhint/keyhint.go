@@ -28,32 +28,6 @@ type Renderer struct {
 	Inline bool
 }
 
-// Inline highlights the key inside the description when it is a single-letter suffix.
-func Inline(key, desc string, keyStyle, textStyle lg.Style) (string, bool) {
-	keyPrefix, keyLetter, ok := splitInlineKey(key)
-	if !ok {
-		return "", false
-	}
-	idx := strings.Index(strings.ToLower(desc), strings.ToLower(keyLetter))
-	if idx < 0 {
-		return "", false
-	}
-	before := desc[:idx]
-	after := desc[idx+1:]
-	var part string
-	if keyPrefix != "" {
-		part = keyStyle.Render(keyPrefix)
-	}
-	if before != "" {
-		part += textStyle.Render(before)
-	}
-	part += keyStyle.Render(keyLetter)
-	if after != "" {
-		part += textStyle.Render(after)
-	}
-	return part, true
-}
-
 func (r Renderer) Render(hints []Hint) string {
 	parts := make([]string, 0, len(hints))
 	gap := r.Gap
@@ -102,6 +76,32 @@ func (r Renderer) Render(hints []Hint) string {
 		lines = append(lines, line)
 	}
 	return strings.Join(lines, nl)
+}
+
+// Inline highlights the key inside the description when it is a single-letter suffix.
+func Inline(key, desc string, keyStyle, textStyle lg.Style) (string, bool) {
+	keyPrefix, keyLetter, ok := splitInlineKey(key)
+	if !ok {
+		return "", false
+	}
+	idx := strings.Index(strings.ToLower(desc), strings.ToLower(keyLetter))
+	if idx < 0 {
+		return "", false
+	}
+	before := desc[:idx]
+	after := desc[idx+1:]
+	var part string
+	if keyPrefix != "" {
+		part = keyStyle.Render(keyPrefix)
+	}
+	if before != "" {
+		part += textStyle.Render(before)
+	}
+	part += keyStyle.Render(keyLetter)
+	if after != "" {
+		part += textStyle.Render(after)
+	}
+	return part, true
 }
 
 func renderDesc(desc string, textStyle lg.Style) string {

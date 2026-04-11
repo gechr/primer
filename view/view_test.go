@@ -8,7 +8,7 @@ import (
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/gechr/primer/layout"
-	"github.com/gechr/primer/scroll/bar"
+	"github.com/gechr/primer/scrollbar"
 	"github.com/gechr/primer/view"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,7 @@ func TestRenderContentUsesCachedLinesWithScrollbar(t *testing.T) {
 	vp.SetContentLines(lines)
 	vp.SetYOffset(1)
 
-	got := ansi.Strip(view.RenderContent(lines, vp, true, bar.Styles{
+	got := ansi.Strip(view.RenderContent(lines, vp, true, scrollbar.Styles{
 		Thumb: lg.NewStyle(),
 		Track: lg.NewStyle(),
 	}))
@@ -57,7 +57,7 @@ func TestRenderFrameFillsTerminalRectangle(t *testing.T) {
 		Height: 7,
 		Styles: view.FrameStyles{
 			Separator: lg.NewStyle(),
-			Scrollbar: bar.Styles{
+			Scrollbar: scrollbar.Styles{
 				Thumb: lg.NewStyle(),
 				Track: lg.NewStyle(),
 			},

@@ -1,4 +1,4 @@
-// Package wheel coalesces rapid mouse wheel events into batched scroll
+// Package scrollwheel coalesces rapid mouse wheel events into batched scroll
 // messages, preventing per-event Update + Render cycles from pegging CPU.
 //
 // The coalescer intercepts wheel events via a Bubble Tea filter, accumulates
@@ -6,7 +6,7 @@
 // A user-supplied [Resolver] maps the current model to an application-defined
 // scroll target so the coalescer can route events correctly and flush
 // immediately when the target changes mid-batch.
-package wheel
+package scrollwheel
 
 import (
 	"sync"
@@ -100,6 +100,19 @@ func (c *Coalescer[T]) Filter(model tea.Model, msg tea.Msg) tea.Msg {
 	return nil
 }
 
+// Stop cancels any pending flush and resets accumulated state.
+func (c *Coalescer[T]) Stop() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.timer != nil {
+		c.timer.Stop()
+		c.timer = nil
+	}
+	c.active = false
+	c.target = c.zero
+	c.delta = 0
+}
+
 func (c *Coalescer[T]) enqueue(target T, delta int) {
 	var immediate *Msg[T]
 	startTimer := false
@@ -166,17 +179,4 @@ func (c *Coalescer[T]) dispatch(msg tea.Msg) {
 		return
 	}
 	go c.send(msg)
-}
-
-// Stop cancels any pending flush and resets accumulated state.
-func (c *Coalescer[T]) Stop() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.timer != nil {
-		c.timer.Stop()
-		c.timer = nil
-	}
-	c.active = false
-	c.target = c.zero
-	c.delta = 0
 }
