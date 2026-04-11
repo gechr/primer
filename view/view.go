@@ -34,6 +34,17 @@ func (m FrameModel) separator() string {
 	return "─"
 }
 
+// Sync normalizes lines to width, sets viewport dimensions, loads the
+// content, and enables fill-height. Returns the normalized lines for rendering.
+func Sync(vp *viewport.Model, lines []string, width, height int) []string {
+	renderLines := layout.NormalizeLines(lines, width)
+	vp.SetWidth(width)
+	vp.SetHeight(height)
+	vp.SetContentLines(renderLines)
+	vp.FillHeight = true
+	return renderLines
+}
+
 // RenderContent renders viewport lines with an optional single-column scrollbar.
 func RenderContent(
 	lines []string,
