@@ -83,7 +83,7 @@ func scrollToRow(h Hitbox, row, grab int) int {
 		return 0
 	}
 
-	// Thumb size is independent of scroll percent — pass 0.
+	// Thumb size is independent of scroll percent - pass 0.
 	_, thumbSize := ThumbMetrics(h.Height, h.TotalLines, 0)
 	trackSpace := max(0, h.Height-thumbSize)
 	topRow := min(max(row-grab, 0), trackSpace)

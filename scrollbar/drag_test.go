@@ -103,7 +103,7 @@ func TestDragPressOnThumbPreservesGrabOffset(t *testing.T) {
 	require.True(t, d.Active)
 
 	// The offset should be near the midpoint of maxOffset (30).
-	require.InDelta(t, 15, offset, 8) //nolint:mnd // approximate midpoint
+	require.InDelta(t, 15, offset, 8)
 }
 
 func TestDragContentFitsViewport(t *testing.T) {
