@@ -122,3 +122,17 @@ func TestFormatTimeAgoCompactFromFuture(t *testing.T) {
 	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
 	require.Equal(t, "in 3d", human.FormatTimeAgoCompactFrom(now.Add(3*24*time.Hour), now))
 }
+
+func TestFormatTimeAgoWrapperUsesCurrentTime(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+	require.Equal(t, "now", human.FormatTimeAgo(now))
+}
+
+func TestFormatTimeAgoCompactWrapperUsesCurrentTime(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+	require.Equal(t, "now", human.FormatTimeAgoCompact(now))
+}
