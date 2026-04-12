@@ -50,7 +50,7 @@ func TestRenderFrameFillsTerminalRectangle(t *testing.T) {
 
 	got := view.RenderFrame(view.FrameModel{
 		Header: "Header",
-		Footer: "Footer",
+		Footer: []view.FooterComponent{{Content: "Footer"}},
 		Lines:  lines,
 		View:   vp,
 		Width:  12,
@@ -125,4 +125,78 @@ func TestRenderFrameUsesScrollbarWhenContentExceedsViewport(t *testing.T) {
 	}))
 
 	require.Equal(t, "two ┃\nthre█\n────\n", got)
+}
+
+func TestRenderFrameComposesFooterComponents(t *testing.T) {
+	lines := []string{layout.NormalizeLine("body", 12)}
+	vp := viewport.New()
+	vp.SetWidth(12)
+	vp.SetHeight(2)
+	vp.SetContentLines(lines)
+
+	got := ansi.Strip(view.RenderFrame(view.FrameModel{
+		Footer: []view.FooterComponent{
+			{Content: "Help"},
+			{Align: view.FooterAlignRight, Content: "Status"},
+		},
+		Lines:  lines,
+		View:   vp,
+		Width:  12,
+		Height: 4,
+		Styles: view.FrameStyles{
+			Separator: lg.NewStyle(),
+			Scrollbar: scrollbar.Styles{},
+		},
+	}))
+
+	require.Contains(t, got, "Help  Status")
+}
+
+func TestRenderFrameBreaksFooterRows(t *testing.T) {
+	lines := []string{layout.NormalizeLine("body", 12)}
+	vp := viewport.New()
+	vp.SetWidth(12)
+	vp.SetHeight(1)
+	vp.SetContentLines(lines)
+
+	got := ansi.Strip(view.RenderFrame(view.FrameModel{
+		Footer: []view.FooterComponent{
+			{Content: "Help"},
+			{BreakBefore: true, Align: view.FooterAlignRight, Content: "Status"},
+		},
+		Lines:  lines,
+		View:   vp,
+		Width:  12,
+		Height: 5,
+		Styles: view.FrameStyles{
+			Separator: lg.NewStyle(),
+			Scrollbar: scrollbar.Styles{},
+		},
+	}))
+
+	require.Contains(t, got, "\nHelp")
+	require.Contains(t, got, "\n      Status")
+}
+
+func TestRenderFrameTruncatesRightAlignedFooterComponent(t *testing.T) {
+	vp := viewport.New()
+	vp.SetWidth(4)
+	vp.SetHeight(1)
+	vp.SetContentLines([]string{"body"})
+
+	got := ansi.Strip(view.RenderFrame(view.FrameModel{
+		Footer: []view.FooterComponent{
+			{Align: view.FooterAlignRight, Content: "Diffing owner/repo#42"},
+		},
+		Lines:  []string{"body"},
+		View:   vp,
+		Width:  4,
+		Height: 3,
+		Styles: view.FrameStyles{
+			Separator: lg.NewStyle(),
+			Scrollbar: scrollbar.Styles{},
+		},
+	}))
+
+	require.Contains(t, got, "\nDif…")
 }

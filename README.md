@@ -10,7 +10,7 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `filter`         | Smart-case text matching with `!` negate, `^` prefix, `$` suffix modifiers |
 | `flash`          | Transient status message state with monotonic-ID expiry                    |
 | `human`          | Human-readable time formatting, path contraction, and path expansion       |
-| `helpbar`        | Wrapped footer hints with right-aligned status text                        |
+| `helpbar`        | Wrapped footer hints                                                       |
 | `input`          | Textarea factory with sensible TUI defaults and functional options         |
 | `helpsheet`      | Two-column keybinding overlay sheet with dismiss footer                    |
 | `key`            | Shared key-name constants plus inline key-highlight rendering              |
@@ -24,7 +24,7 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `scrollwheel`    | Mouse wheel event coalescing for Bubble Tea filters                        |
 | `table`          | ANSI-aware column alignment, typed sorting, and generic table rendering    |
 | `term`           | Terminal detection and size queries                                        |
-| `view`           | Viewport body rendering and fullscreen frame composition                   |
+| `view`           | Viewport body rendering and composable fullscreen frame footers            |
 
 ## Install
 
