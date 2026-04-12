@@ -13,7 +13,11 @@ func TestContractHomeSubpath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
-	require.Equal(t, "~/Documents/file.txt", human.ContractHome(filepath.Join(home, "Documents", "file.txt")))
+	require.Equal(
+		t,
+		"~/Documents/file.txt",
+		human.ContractHome(filepath.Join(home, "Documents", "file.txt")),
+	)
 }
 
 func TestContractHomeExact(t *testing.T) {
@@ -42,7 +46,7 @@ func TestExpandPathTildeSubpath(t *testing.T) {
 }
 
 func TestExpandPathEmpty(t *testing.T) {
-	require.Equal(t, "", human.ExpandPath(""))
+	require.Empty(t, human.ExpandPath(""))
 }
 
 func TestExpandPathAbsolute(t *testing.T) {
