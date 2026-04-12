@@ -1,6 +1,8 @@
 package render_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/gechr/primer/render"
@@ -60,4 +62,66 @@ func TestDiffPlainTextPassthrough(t *testing.T) {
 	// but the result should be non-empty.
 	out := render.Diff("just some text")
 	assert.NotEmpty(t, out)
+}
+
+func TestDiffStyledFallsBackWhenDeltaMissing(t *testing.T) {
+	t.Parallel()
+	diff := `--- a/file.go
++++ b/file.go
+@@ -1 +1 @@
+-old
++new
+`
+
+	out := render.DiffStyled(diff, render.DiffOptions{DeltaBin: "/missing/delta"})
+
+	require.NotEmpty(t, out)
+	assert.NotEqual(t, diff, out)
+}
+
+func TestDiffWithDeltaUsesConfiguredBinary(t *testing.T) {
+	t.Parallel()
+
+	script := filepath.Join(t.TempDir(), "delta")
+	err := os.WriteFile(script, []byte(`#!/bin/sh
+cat
+`), 0o755)
+	require.NoError(t, err)
+
+	diff := "--- a/file.go\n+++ b/file.go\n"
+	out, err := render.DiffWithDelta(diff, render.DiffOptions{DeltaBin: script})
+
+	require.NoError(t, err)
+	assert.Equal(t, diff, out)
+}
+
+func TestDiffWithDeltaAddsHyperlinkArguments(t *testing.T) {
+	script := filepath.Join(t.TempDir(), "delta")
+	err := os.WriteFile(script, []byte(`#!/bin/sh
+printf '%s\n' "$@" > "$TMPDIR/primer-delta-args.txt"
+cat
+`), 0o755)
+	require.NoError(t, err)
+
+	tmpDir := t.TempDir()
+	t.Setenv("TMPDIR", tmpDir)
+
+	diff := "--- a/file.go\n+++ b/file.go\n"
+	out, err := render.DiffWithDelta(diff, render.DiffOptions{
+		DeltaBin:  script,
+		RepoURL:   "https://github.com/owner/repo",
+		CommitSHA: "abc123",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, diff, out)
+
+	args, err := os.ReadFile(filepath.Join(tmpDir, "primer-delta-args.txt"))
+	require.NoError(t, err)
+	assert.Contains(t, string(args), "--hyperlinks")
+	assert.Contains(
+		t,
+		string(args),
+		"https://github.com/owner/repo/blob/abc123{path}?plain=1#L{line}",
+	)
 }

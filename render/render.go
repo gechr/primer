@@ -7,6 +7,8 @@ package render
 
 import (
 	"bytes"
+	"context"
+	"os/exec"
 	"strings"
 	"sync"
 
@@ -16,6 +18,18 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
+
+// DiffOptions configures optional external diff rendering.
+type DiffOptions struct {
+	// DeltaBin is the path to the delta binary. When empty, DiffStyled will
+	// try to find delta on PATH.
+	DeltaBin string
+	// RepoURL enables GitHub blob hyperlinks in delta output when set together
+	// with CommitSHA, e.g. "https://github.com/owner/repo".
+	RepoURL string
+	// CommitSHA is the commit used for blob hyperlinks in delta output.
+	CommitSHA string
+}
 
 // glamourCache holds a cached renderer to avoid re-creating it on every call.
 var glamourCache struct {
@@ -80,6 +94,56 @@ func Diff(text string) string {
 		return text
 	}
 	return buf.String()
+}
+
+// DiffStyled renders a diff using delta when available, falling back to Diff.
+// When RepoURL and CommitSHA are set, delta file links point at that GitHub blob.
+func DiffStyled(text string, opts DiffOptions) string {
+	if text == "" {
+		return ""
+	}
+	if out, err := DiffWithDelta(text, opts); err == nil {
+		return out
+	}
+	return Diff(text)
+}
+
+// DiffWithDelta renders a diff through delta. It returns an error when delta
+// is unavailable or execution fails.
+func DiffWithDelta(text string, opts DiffOptions) (string, error) {
+	if text == "" {
+		return "", nil
+	}
+
+	deltaBin := opts.DeltaBin
+	if deltaBin == "" {
+		path, err := exec.LookPath("delta")
+		if err != nil {
+			return "", err
+		}
+		deltaBin = path
+	}
+
+	args := []string{"--true-color=always"}
+	if opts.RepoURL != "" && opts.CommitSHA != "" {
+		args = append(args,
+			"--hyperlinks",
+			"--hyperlinks-file-link-format",
+			opts.RepoURL+"/blob/"+opts.CommitSHA+"{path}?plain=1#L{line}",
+		)
+	}
+
+	cmd := exec.CommandContext(context.Background(), deltaBin, args...)
+	if opts.RepoURL != "" && opts.CommitSHA != "" {
+		// Delta resolves {path} against CWD; "/" yields "/{relative_path}".
+		cmd.Dir = "/"
+	}
+	cmd.Stdin = strings.NewReader(text)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
 
 // resolveRenderer returns a cached or freshly created renderer.
