@@ -11,7 +11,7 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `flash`          | Transient status message state with monotonic-ID expiry                    |
 | `helpbar`        | Wrapped footer hints with right-aligned status text                        |
 | `helpsheet`      | Two-column keybinding overlay sheet with dismiss footer                    |
-| `keyhint`        | Inline key-highlight rendering for help bars                               |
+| `key`            | Inline key-highlight rendering for help bars                               |
 | `layout`         | Line normalization, ANSI-aware hard wrapping, and separator rendering      |
 | `overlay`        | Centered foreground placement over background content                      |
 | `prompt`         | Scrollable modal prompts with choice groups, hints, and interaction state  |
