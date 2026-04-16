@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/gechr/primer/ansi/hyperlink"
+	"github.com/gechr/x/ansi"
 )
 
 // Theme provides the styling methods needed by the table renderer.
@@ -33,13 +33,13 @@ type Row[T any] struct {
 // RenderContext holds shared state for column renderers.
 type RenderContext struct {
 	Theme        Theme
-	Ansi         *hyperlink.Writer
+	Ansi         *ansi.ANSI
 	entityColors map[string]int
 	colorIndex   int
 }
 
 // NewRenderContext creates a RenderContext.
-func NewRenderContext(theme Theme, ansiWriter *hyperlink.Writer) *RenderContext {
+func NewRenderContext(theme Theme, ansiWriter *ansi.ANSI) *RenderContext {
 	return &RenderContext{
 		Theme:        theme,
 		Ansi:         ansiWriter,
@@ -60,11 +60,6 @@ func (ctx *RenderContext) AssignEntityColor(key string) color.Color {
 		ctx.colorIndex = (ctx.colorIndex + 1) % len(colors)
 	}
 	return colors[ctx.entityColors[key]]
-}
-
-// Hyperlink creates an OSC 8 terminal hyperlink using the context's ANSI writer.
-func (ctx *RenderContext) Hyperlink(url, text string) string {
-	return ctx.Ansi.Render(url, text)
 }
 
 // Renderer renders a slice of items as an aligned table.

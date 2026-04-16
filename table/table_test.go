@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/x/ansi"
-	"github.com/gechr/primer/ansi/hyperlink"
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/gechr/primer/table"
+	"github.com/gechr/x/ansi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +36,7 @@ type record struct {
 func newContext(theme table.Theme) *table.RenderContext {
 	return table.NewRenderContext(
 		theme,
-		hyperlink.New(hyperlink.WithFallback(hyperlink.FallbackText)),
+		ansi.New(ansi.WithHyperlinkFallback(ansi.HyperlinkFallbackText)),
 	)
 }
 
@@ -68,7 +68,7 @@ func TestNewRendererAndRenderHeaderOnlyUsesCustomHeaderRenderer(t *testing.T) {
 
 	header, widths := renderer.RenderHeaderOnly([]int{4, 2})
 
-	require.Equal(t, "ID    DESCRIPTION", ansi.Strip(header))
+	require.Equal(t, "ID    DESCRIPTION", xansi.Strip(header))
 	require.Equal(t, []int{4, 11}, widths)
 }
 
@@ -102,9 +102,9 @@ func TestRenderFormatsRowsWithReverseIndex(t *testing.T) {
 	require.Len(t, got.Rows, 2)
 	require.Equal(t, 2, got.Rows[0].Item.ID)
 	require.Equal(t, 1, got.Rows[1].Item.ID)
-	require.True(t, strings.HasPrefix(ansi.Strip(got.Rows[0].Display), "1"))
-	require.True(t, strings.HasPrefix(ansi.Strip(got.Rows[1].Display), "2"))
-	require.Equal(t, "   ID  Name", ansi.Strip(got.Header))
+	require.True(t, strings.HasPrefix(xansi.Strip(got.Rows[0].Display), "1"))
+	require.True(t, strings.HasPrefix(xansi.Strip(got.Rows[1].Display), "2"))
+	require.Equal(t, "   ID  Name", xansi.Strip(got.Header))
 	require.Len(t, got.ColWidths, 3)
 }
 
@@ -129,8 +129,8 @@ func TestRenderTruncatesFlexColumnToTermWidth(t *testing.T) {
 	got := renderer.Render([]record{{ID: 1, Name: "abcdef"}})
 
 	require.Equal(t, []int{2, 4}, got.ColWidths)
-	require.Equal(t, "1   ab…", ansi.Strip(got.Rows[0].Display))
-	require.Equal(t, 7, ansi.WcWidth.StringWidth(ansi.Strip(got.Rows[0].Display)))
+	require.Equal(t, "1   ab…", xansi.Strip(got.Rows[0].Display))
+	require.Equal(t, 7, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)))
 }
 
 func TestRenderReturnsEmptyTableForEmptyInputs(t *testing.T) {
