@@ -108,7 +108,7 @@ func TestRenderFormatsRowsWithReverseIndex(t *testing.T) {
 	require.Len(t, got.ColWidths, 3)
 }
 
-func TestRenderTruncatesFlexColumnToTermWidth(t *testing.T) {
+func TestRenderTruncatesFlexColumnsToTermWidth(t *testing.T) {
 	t.Parallel()
 
 	columns := []table.Column[record]{
@@ -131,6 +131,37 @@ func TestRenderTruncatesFlexColumnToTermWidth(t *testing.T) {
 	require.Equal(t, []int{2, 4}, got.ColWidths)
 	require.Equal(t, "1   ab…", xansi.Strip(got.Rows[0].Display))
 	require.Equal(t, 7, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)))
+}
+
+func TestRenderShrinksMultipleFlexColumnsToTermWidth(t *testing.T) {
+	t.Parallel()
+
+	columns := []table.Column[record]{
+		{
+			Name:   "id",
+			Header: "ID",
+			Render: func(r record, _ *table.RenderContext) table.Cell { return table.TextCell(strconv.Itoa(r.ID)) },
+		},
+		{
+			Name:   "name",
+			Header: "Name",
+			Flex:   true,
+			Render: func(r record, _ *table.RenderContext) table.Cell { return table.TextCell(r.Name) },
+		},
+		{
+			Name:   "note",
+			Header: "Note",
+			Flex:   true,
+			Render: func(_ record, _ *table.RenderContext) table.Cell { return table.TextCell("wxyz") },
+		},
+	}
+	renderer := table.NewRenderer(columns, newContext(testTheme{}), table.WithTermWidth(18))
+
+	got := renderer.Render([]record{{ID: 1, Name: "abcdefghijkl"}})
+
+	require.Equal(t, []int{2, 8, 4}, got.ColWidths)
+	require.Equal(t, "1   abcdef…   wxyz", xansi.Strip(got.Rows[0].Display))
+	require.LessOrEqual(t, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)), 18)
 }
 
 func TestRenderReturnsEmptyTableForEmptyInputs(t *testing.T) {

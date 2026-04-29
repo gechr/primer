@@ -10,11 +10,11 @@ const defaultColumnPadding = 2
 
 // Grid is a table of cell values (rows x columns) with alignment options.
 type Grid struct {
-	Rows          [][]string
 	ColumnPadding int
+	FlexCols      []int // indexes of columns that shrink to fit
+	MaxWidth      int   // terminal width; flex columns shrink to fit (0 = disabled)
 	Padding       Padding
-	FlexCol       int  // index of the flex column (-1 = disabled)
-	MaxWidth      int  // terminal width; flex column shrinks to fit (0 = disabled)
+	Rows          [][]string
 	TTY           bool // when true, wrap spaces in SGR 8 to prevent tab optimization
 }
 
@@ -25,7 +25,6 @@ func NewGrid(rows [][]string, opts ...GridOption) *Grid {
 		Rows:          rows,
 		ColumnPadding: defaultColumnPadding,
 		Padding:       PaddingLeft,
-		FlexCol:       -1,
 	}
 	for _, opt := range opts {
 		opt(g)
@@ -58,22 +57,13 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 		}
 	}
 
-	// Truncate flex column to fit within MaxWidth.
-	if g.FlexCol >= 0 && g.FlexCol < maxCols && g.MaxWidth > 0 {
-		totalGaps := (maxCols - 1) * g.ColumnPadding
-		fixedWidth := totalGaps
-		for c, w := range colWidths {
-			if c != g.FlexCol {
-				fixedWidth += w
-			}
-		}
-		flexBudget := g.MaxWidth - fixedWidth
-		if flexBudget < colWidths[g.FlexCol] && flexBudget > 0 {
-			colWidths[g.FlexCol] = flexBudget
-			// Truncate cell values that exceed the budget.
+	flexCols := validFlexCols(g.FlexCols, maxCols)
+	if len(flexCols) > 0 && g.MaxWidth > 0 {
+		shrinkFlexWidths(colWidths, flexCols, g.MaxWidth, g.ColumnPadding)
+		for _, flexCol := range flexCols {
 			for i, row := range g.Rows {
-				if g.FlexCol < len(row) {
-					g.Rows[i][g.FlexCol] = truncateVisible(row[g.FlexCol], flexBudget)
+				if flexCol < len(row) {
+					g.Rows[i][flexCol] = truncateVisible(row[flexCol], colWidths[flexCol])
 				}
 			}
 		}
@@ -112,6 +102,56 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 		result[i] = sb.String()
 	}
 	return result, colWidths
+}
+
+func validFlexCols(cols []int, maxCols int) []int {
+	flexCols := make([]int, 0, len(cols))
+	seen := make(map[int]bool, len(cols))
+	for _, col := range cols {
+		if col < 0 || col >= maxCols || seen[col] {
+			continue
+		}
+		seen[col] = true
+		flexCols = append(flexCols, col)
+	}
+	return flexCols
+}
+
+func shrinkFlexWidths(colWidths []int, flexCols []int, maxWidth, columnPadding int) {
+	overflow := totalGridWidth(colWidths, columnPadding) - maxWidth
+	for overflow > 0 {
+		flexCol := widestShrinkableFlexCol(colWidths, flexCols)
+		if flexCol < 0 {
+			return
+		}
+		colWidths[flexCol]--
+		overflow--
+	}
+}
+
+func widestShrinkableFlexCol(colWidths []int, flexCols []int) int {
+	const minFlexWidth = 1
+
+	widestCol := -1
+	widestWidth := minFlexWidth
+	for _, col := range flexCols {
+		if colWidths[col] > widestWidth {
+			widestCol = col
+			widestWidth = colWidths[col]
+		}
+	}
+	return widestCol
+}
+
+func totalGridWidth(colWidths []int, columnPadding int) int {
+	total := 0
+	for _, width := range colWidths {
+		total += width
+	}
+	if len(colWidths) > 1 {
+		total += (len(colWidths) - 1) * columnPadding
+	}
+	return total
 }
 
 // VisibleWidth computes the visible width of a string, ignoring ANSI escapes.

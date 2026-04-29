@@ -15,7 +15,7 @@ func TestNewGridAppliesDefaultsAndOptions(t *testing.T) {
 	defaultGrid := table.NewGrid(nil)
 	require.Equal(t, 2, defaultGrid.ColumnPadding)
 	require.Equal(t, table.PaddingLeft, defaultGrid.Padding)
-	require.Equal(t, -1, defaultGrid.FlexCol)
+	require.Nil(t, defaultGrid.FlexCols)
 
 	configured := table.NewGrid(
 		[][]string{{"a"}},
@@ -24,7 +24,7 @@ func TestNewGridAppliesDefaultsAndOptions(t *testing.T) {
 	)
 	require.Equal(t, 4, configured.ColumnPadding)
 	require.Equal(t, table.PaddingRight, configured.Padding)
-	require.Equal(t, -1, configured.FlexCol)
+	require.Nil(t, configured.FlexCols)
 	require.Equal(t, [][]string{{"a"}}, configured.Rows)
 }
 
@@ -82,14 +82,14 @@ func TestAlignColumnsPaddingModes(t *testing.T) {
 	}
 }
 
-func TestAlignColumnsTruncatesFlexColumnAndWrapsTTYSpaces(t *testing.T) {
+func TestAlignColumnsTruncatesFlexColumnsAndWrapsTTYSpaces(t *testing.T) {
 	t.Parallel()
 
 	grid := table.NewGrid([][]string{
 		{"1", "abcdef"},
 		{"2", "xy"},
 	})
-	grid.FlexCol = 1
+	grid.FlexCols = []int{1}
 	grid.MaxWidth = 8
 	grid.TTY = true
 
@@ -102,4 +102,21 @@ func TestAlignColumnsTruncatesFlexColumnAndWrapsTTYSpaces(t *testing.T) {
 	require.NotEqual(t, "abcdef", grid.Rows[0][1])
 	require.Contains(t, grid.Rows[0][1], "…")
 	require.True(t, strings.HasPrefix(ansi.Strip(aligned[1]), "2"))
+}
+
+func TestAlignColumnsShrinksMultipleFlexColumns(t *testing.T) {
+	t.Parallel()
+
+	grid := table.NewGrid([][]string{
+		{"ID", "Alpha", "Beta", "End"},
+		{"1", "abcdefghijkl", "wxyz", "ok"},
+	}, table.WithFlexColumns(1, 2))
+	grid.MaxWidth = 18
+
+	aligned, widths := grid.AlignColumns()
+
+	require.Equal(t, []int{2, 3, 4, 3}, widths)
+	require.LessOrEqual(t, table.VisibleWidth(aligned[1]), 18)
+	require.Equal(t, "a…", ansi.Strip(grid.Rows[1][1]))
+	require.Equal(t, "wxyz", ansi.Strip(grid.Rows[1][2]))
 }

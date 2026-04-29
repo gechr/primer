@@ -19,6 +19,13 @@ func WithColumnPadding(n int) GridOption {
 	}
 }
 
+// WithFlexColumns sets the columns that shrink to fit MaxWidth.
+func WithFlexColumns(cols ...int) GridOption {
+	return func(g *Grid) {
+		g.FlexCols = cols
+	}
+}
+
 // WithPadding sets the text alignment within columns.
 func WithPadding(p Padding) GridOption {
 	return func(g *Grid) {
@@ -37,7 +44,7 @@ type config struct {
 	reverse        bool
 	showIndex      bool
 	tty            bool // true when outputting to a terminal
-	termWidth      int  // terminal width for flex column truncation (0 = disabled)
+	termWidth      int  // terminal width for flex columns (0 = disabled)
 	headerRenderer HeaderRenderer
 }
 
@@ -50,7 +57,7 @@ func WithShowIndex(v bool) Option { return func(c *config) { c.showIndex = v } }
 // WithTTY sets whether output is going to a terminal.
 func WithTTY(v bool) Option { return func(c *config) { c.tty = v } }
 
-// WithTermWidth sets the terminal width for flex column truncation.
+// WithTermWidth sets the terminal width for flex columns.
 // When set, columns marked Flex=true are truncated so rows fit within this width.
 func WithTermWidth(w int) Option { return func(c *config) { c.termWidth = w } }
 

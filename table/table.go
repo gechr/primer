@@ -114,17 +114,11 @@ func (r *Renderer[T]) RenderHeaderOnly(sampleWidths []int) (string, []int) {
 		}
 		samples[i] = strings.Repeat(" ", w)
 	}
-	flexCol := -1
-	for i, col := range r.columns {
-		if col.Flex {
-			flexCol = i
-			break
-		}
-	}
+	flexCols := collectFlexCols(r.columns, 0)
 	g := NewGrid([][]string{header, samples})
 	g.TTY = r.cfg.tty
-	if flexCol >= 0 && r.cfg.termWidth > 0 {
-		g.FlexCol = flexCol
+	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
+		g.FlexCols = flexCols
 		g.MaxWidth = r.cfg.termWidth
 	}
 	aligned, colWidths := g.AlignColumns()
@@ -202,24 +196,19 @@ func (r *Renderer[T]) format(rows []Row[T]) RenderedTable[T] {
 		}
 	}
 
-	// Determine flex column index in the grid (offset by 1 if index column prepended).
-	flexCol := -1
-	for i, col := range r.columns {
-		if col.Flex {
-			flexCol = i
-			if r.cfg.showIndex {
-				flexCol = i + 1
-			}
-			break
-		}
+	// Determine flex column indexes in the grid, offset when index values are shown.
+	offset := 0
+	if r.cfg.showIndex {
+		offset = 1
 	}
+	flexCols := collectFlexCols(r.columns, offset)
 
 	// Prepend header and align.
 	allRows := append([][]string{header}, grid...)
 	g := NewGrid(allRows)
 	g.TTY = r.cfg.tty
-	if flexCol >= 0 && r.cfg.termWidth > 0 {
-		g.FlexCol = flexCol
+	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
+		g.FlexCols = flexCols
 		g.MaxWidth = r.cfg.termWidth
 	}
 	aligned, colWidths := g.AlignColumns()
@@ -234,4 +223,14 @@ func (r *Renderer[T]) format(rows []Row[T]) RenderedTable[T] {
 		Rows:      rows,
 		ColWidths: colWidths,
 	}
+}
+
+func collectFlexCols[T any](columns []Column[T], offset int) []int {
+	flexCols := make([]int, 0, len(columns))
+	for i, col := range columns {
+		if col.Flex {
+			flexCols = append(flexCols, i+offset)
+		}
+	}
+	return flexCols
 }
