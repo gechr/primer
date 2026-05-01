@@ -17,6 +17,26 @@ func TestHitboxContains(t *testing.T) {
 	require.False(t, h.Contains(78, 5))
 }
 
+func TestHitboxContainsThumb(t *testing.T) {
+	h := scrollbar.Hitbox{X: 79, Y: 2, Height: 10, TotalLines: 40}
+
+	require.True(t, h.ContainsThumb(79, 6, 0.5))
+	require.False(t, h.ContainsThumb(79, 2, 0.5))
+	require.False(t, h.ContainsThumb(78, 6, 0.5))
+}
+
+func TestHitboxContainsThumbUsesConfig(t *testing.T) {
+	h := scrollbar.Hitbox{
+		X:          79,
+		Y:          0,
+		Height:     10,
+		TotalLines: 11,
+		Config:     scrollbar.Config{MaxThumbDivisor: 1},
+	}
+
+	require.True(t, h.ContainsThumb(79, 8, 0))
+}
+
 func TestDragPressReturnsOffset(t *testing.T) {
 	h := scrollbar.Hitbox{X: 79, Y: 0, Height: 10, TotalLines: 40}
 	var d scrollbar.Drag

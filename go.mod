@@ -10,7 +10,7 @@ require (
 	charm.land/glamour/v2 v2.0.0
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.0.3
-	github.com/alecthomas/chroma/v2 v2.24.0
+	github.com/alecthomas/chroma/v2 v2.24.1
 	github.com/charmbracelet/x/ansi v0.11.7
 	github.com/gechr/x v0.0.6
 	github.com/stretchr/testify v1.11.1

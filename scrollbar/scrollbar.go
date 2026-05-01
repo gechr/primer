@@ -10,8 +10,24 @@ import (
 
 const (
 	nl              = "\n"
+	defaultThumb    = "█"
+	defaultTrack    = "┃"
 	maxThumbDivisor = 2
 )
+
+// Config controls scrollbar rendering and geometry.
+//
+// Zero-valued fields preserve the package defaults.
+type Config struct {
+	// ThumbSymbol is the cell rendered for the scrollbar thumb.
+	ThumbSymbol string
+	// TrackSymbol is the cell rendered for the scrollbar track.
+	TrackSymbol string
+	// MaxThumbDivisor caps the thumb height to Height/MaxThumbDivisor.
+	// The default is 2. Set to 1 for a fully proportional thumb capped only
+	// by the track height.
+	MaxThumbDivisor int
+}
 
 type Styles struct {
 	Thumb lg.Style
@@ -19,6 +35,7 @@ type Styles struct {
 }
 
 type Model struct {
+	Config     Config
 	Height     int
 	TotalLines int
 	Percent    float64
@@ -30,14 +47,15 @@ func (m Model) Chars() []string {
 	if m.Height <= 0 {
 		return nil
 	}
-	thumbPos, thumbSize := ThumbMetrics(m.Height, m.TotalLines, m.Percent)
+	cfg := m.Config.withDefaults()
+	thumbPos, thumbSize := ThumbMetricsWithConfig(m.Height, m.TotalLines, m.Percent, cfg)
 	chars := make([]string, m.Height)
 	for i := range m.Height {
 		if i >= thumbPos && i < thumbPos+thumbSize {
-			chars[i] = m.Styles.Thumb.Render("█")
+			chars[i] = m.Styles.Thumb.Render(cfg.ThumbSymbol)
 			continue
 		}
-		chars[i] = m.Styles.Track.Render("┃")
+		chars[i] = m.Styles.Track.Render(cfg.TrackSymbol)
 	}
 	return chars
 }
@@ -68,10 +86,17 @@ func Position(start, end, total int) string {
 
 // ThumbMetrics returns the thumb position and size for a proportional scrollbar.
 func ThumbMetrics(height, totalLines int, percent float64) (int, int) {
+	return ThumbMetricsWithConfig(height, totalLines, percent, Config{})
+}
+
+// ThumbMetricsWithConfig returns the thumb position and size for a proportional
+// scrollbar using the supplied config.
+func ThumbMetricsWithConfig(height, totalLines int, percent float64, cfg Config) (int, int) {
 	if height <= 0 {
 		return 0, 0
 	}
-	maxThumb := height / maxThumbDivisor
+	cfg = cfg.withDefaults()
+	maxThumb := height / cfg.MaxThumbDivisor
 	thumbSize := min(maxThumb, max(1, height*height/max(1, totalLines)))
 	trackSpace := max(0, height-thumbSize)
 	thumbPos := 0
@@ -79,4 +104,24 @@ func ThumbMetrics(height, totalLines int, percent float64) (int, int) {
 		thumbPos = int(math.Round(percent * float64(trackSpace)))
 	}
 	return thumbPos, thumbSize
+}
+
+// ThumbRange returns the start row, inclusive, and end row, exclusive, of the
+// rendered thumb within a track of the given height.
+func ThumbRange(height, totalLines int, percent float64, cfg Config) (int, int) {
+	pos, size := ThumbMetricsWithConfig(height, totalLines, percent, cfg)
+	return pos, pos + size
+}
+
+func (c Config) withDefaults() Config {
+	if c.ThumbSymbol == "" {
+		c.ThumbSymbol = defaultThumb
+	}
+	if c.TrackSymbol == "" {
+		c.TrackSymbol = defaultTrack
+	}
+	if c.MaxThumbDivisor <= 0 {
+		c.MaxThumbDivisor = maxThumbDivisor
+	}
+	return c
 }

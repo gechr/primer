@@ -41,6 +41,20 @@ func TestThumbMetrics(t *testing.T) {
 	require.Less(t, pos, 10)
 }
 
+func TestThumbMetricsKeepsDefaultMaxThumbCap(t *testing.T) {
+	_, size := scrollbar.ThumbMetrics(10, 11, 0)
+
+	require.Equal(t, 5, size)
+}
+
+func TestThumbMetricsWithConfigAllowsProportionalThumb(t *testing.T) {
+	_, size := scrollbar.ThumbMetricsWithConfig(10, 11, 0, scrollbar.Config{
+		MaxThumbDivisor: 1,
+	})
+
+	require.Equal(t, 9, size)
+}
+
 func TestRender(t *testing.T) {
 	m := scrollbar.Model{
 		Height:     4,
@@ -56,4 +70,22 @@ func TestRender(t *testing.T) {
 	lines := strings.Split(ansi.Strip(got), "\n")
 
 	require.Len(t, lines, 4)
+}
+
+func TestRenderUsesConfiguredSymbols(t *testing.T) {
+	m := scrollbar.Model{
+		Height:     3,
+		TotalLines: 9,
+		Config: scrollbar.Config{
+			ThumbSymbol:     "#",
+			TrackSymbol:     ".",
+			MaxThumbDivisor: 1,
+		},
+		Styles: scrollbar.Styles{
+			Thumb: lg.NewStyle(),
+			Track: lg.NewStyle(),
+		},
+	}
+
+	require.Equal(t, "#\n.\n.", ansi.Strip(m.Render()))
 }

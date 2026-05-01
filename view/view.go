@@ -33,14 +33,15 @@ type FooterComponent struct {
 }
 
 type FrameModel struct {
-	Footer    []FooterComponent
-	Header    string
-	Height    int
-	Lines     []string
-	Separator string
-	Styles    FrameStyles
-	View      viewport.Model
-	Width     int
+	Footer          []FooterComponent
+	Header          string
+	Height          int
+	Lines           []string
+	Separator       string
+	ScrollbarConfig scrollbar.Config
+	Styles          FrameStyles
+	View            viewport.Model
+	Width           int
 }
 
 func (m FrameModel) separator() string {
@@ -66,6 +67,7 @@ func RenderContent(
 	lines []string,
 	vp viewport.Model,
 	withScrollbar bool,
+	scrollConfig scrollbar.Config,
 	scrollStyles scrollbar.Styles,
 ) string {
 	height := vp.Height()
@@ -79,6 +81,7 @@ func RenderContent(
 	scrollChars := []string(nil)
 	if withScrollbar {
 		scrollChars = scrollbar.Model{
+			Config:     scrollConfig,
 			Height:     height,
 			TotalLines: vp.TotalLineCount(),
 			Percent:    vp.ScrollPercent(),
@@ -242,9 +245,9 @@ func RenderFrame(m FrameModel) string {
 	case vpHeight <= 0:
 		b.WriteString(nl)
 	case totalLines > vpHeight:
-		b.WriteString(RenderContent(m.Lines, m.View, true, m.Styles.Scrollbar))
+		b.WriteString(RenderContent(m.Lines, m.View, true, m.ScrollbarConfig, m.Styles.Scrollbar))
 	default:
-		b.WriteString(RenderContent(m.Lines, m.View, false, m.Styles.Scrollbar))
+		b.WriteString(RenderContent(m.Lines, m.View, false, m.ScrollbarConfig, m.Styles.Scrollbar))
 	}
 	b.WriteString(nl)
 

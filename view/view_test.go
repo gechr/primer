@@ -26,7 +26,7 @@ func TestRenderContentUsesCachedLinesWithScrollbar(t *testing.T) {
 	vp.SetContentLines(lines)
 	vp.SetYOffset(1)
 
-	got := ansi.Strip(view.RenderContent(lines, vp, true, scrollbar.Styles{
+	got := ansi.Strip(view.RenderContent(lines, vp, true, scrollbar.Config{}, scrollbar.Styles{
 		Thumb: lg.NewStyle(),
 		Track: lg.NewStyle(),
 	}))
@@ -85,7 +85,7 @@ func TestRenderContentWithoutScrollbarPadsBlankRows(t *testing.T) {
 	vp.SetHeight(2)
 	vp.SetContentLines([]string{"line"})
 
-	got := view.RenderContent([]string{"line"}, vp, false, scrollbar.Styles{})
+	got := view.RenderContent([]string{"line"}, vp, false, scrollbar.Config{}, scrollbar.Styles{})
 
 	require.Equal(t, "line\n    ", got)
 }
@@ -95,7 +95,10 @@ func TestRenderContentReturnsEmptyForZeroHeight(t *testing.T) {
 	vp.SetWidth(4)
 	vp.SetHeight(0)
 
-	require.Empty(t, view.RenderContent([]string{"line"}, vp, false, scrollbar.Styles{}))
+	require.Empty(
+		t,
+		view.RenderContent([]string{"line"}, vp, false, scrollbar.Config{}, scrollbar.Styles{}),
+	)
 }
 
 func TestRenderFrameUsesScrollbarWhenContentExceedsViewport(t *testing.T) {

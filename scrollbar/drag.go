@@ -8,11 +8,23 @@ type Hitbox struct {
 	Y          int // top row
 	Height     int // visible track height
 	TotalLines int // total content lines
+	Config     Config
 }
 
 // Contains reports whether the screen coordinate (x, y) falls within the hitbox.
 func (h Hitbox) Contains(x, y int) bool {
 	return x == h.X && y >= h.Y && y < h.Y+h.Height
+}
+
+// ContainsThumb reports whether the screen coordinate (x, y) falls within the
+// rendered scrollbar thumb.
+func (h Hitbox) ContainsThumb(x, y int, scrollPercent float64) bool {
+	if !h.Contains(x, y) {
+		return false
+	}
+	start, end := ThumbRange(h.Height, h.TotalLines, scrollPercent, h.Config)
+	row := y - h.Y
+	return row >= start && row < end
 }
 
 // Drag tracks the state of a scrollbar drag interaction.
@@ -44,7 +56,7 @@ type Drag struct {
 func (d *Drag) Press(h Hitbox, mouseY int, scrollPercent float64) int {
 	const thumbCenterDivisor = 2
 
-	thumbPos, thumbSize := ThumbMetrics(h.Height, h.TotalLines, scrollPercent)
+	thumbPos, thumbSize := ThumbMetricsWithConfig(h.Height, h.TotalLines, scrollPercent, h.Config)
 	row := min(max(mouseY-h.Y, 0), h.Height-1)
 
 	grab := thumbSize / thumbCenterDivisor
@@ -84,7 +96,7 @@ func scrollToRow(h Hitbox, row, grab int) int {
 	}
 
 	// Thumb size is independent of scroll percent - pass 0.
-	_, thumbSize := ThumbMetrics(h.Height, h.TotalLines, 0)
+	_, thumbSize := ThumbMetricsWithConfig(h.Height, h.TotalLines, 0, h.Config)
 	trackSpace := max(0, h.Height-thumbSize)
 	topRow := min(max(row-grab, 0), trackSpace)
 

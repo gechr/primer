@@ -37,13 +37,14 @@ type ChoiceGroupStyles struct {
 }
 
 type ScrollableModel struct {
-	BoxStyle       lg.Style
-	BoxWidth       int
-	Content        string
-	View           viewport.Model
-	ViewportHeight int
-	ViewWidth      int
-	Styles         Styles
+	BoxStyle        lg.Style
+	BoxWidth        int
+	Content         string
+	ScrollbarConfig scrollbar.Config
+	View            viewport.Model
+	ViewportHeight  int
+	ViewWidth       int
+	Styles          Styles
 }
 
 type NavDirection int
@@ -135,6 +136,7 @@ func RenderScrollable(m ScrollableModel) string {
 	view.SetContent(m.Content)
 
 	scroll := scrollbar.Model{
+		Config:     m.ScrollbarConfig,
 		Height:     m.ViewportHeight,
 		TotalLines: view.TotalLineCount(),
 		Percent:    view.ScrollPercent(),
