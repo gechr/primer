@@ -19,6 +19,8 @@ const (
 	editorFieldCount       = 2
 )
 
+const keyTab = "tab"
+
 // EditorEntry defines an item to edit.
 type EditorEntry struct {
 	Label string // display label (e.g. "owner/repo#123")
@@ -237,7 +239,7 @@ func (m Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc", "ctrl+c":
 			m.Aborted = true
 			return m, tea.Quit
-		case "tab", "shift+tab":
+		case keyTab, "shift+tab":
 			return m.cycleField(msg.String())
 		case "ctrl+s":
 			m.Submitted = true
@@ -292,7 +294,7 @@ func (m Editor) navigate(delta int) (tea.Model, tea.Cmd) {
 func (m Editor) cycleField(k string) (tea.Model, tea.Cmd) {
 	e := &m.entries[m.current]
 
-	if k == "tab" {
+	if k == keyTab {
 		e.focus = (e.focus + 1) % editorFieldCount
 	} else {
 		e.focus = (e.focus - 1 + editorFieldCount) % editorFieldCount
@@ -398,7 +400,7 @@ func (m Editor) renderHelp() string {
 		desc string
 	}
 	pairs := []hint{
-		{"tab", "switch field"},
+		{keyTab, "switch field"},
 		{"ctrl+s", "save all"},
 		{"esc", "cancel"},
 	}

@@ -12,7 +12,6 @@ func Is(f *os.File) bool {
 	if f == nil {
 		return false
 	}
-	//nolint:gosec // file descriptor fits in int
 	return term.IsTerminal(int(f.Fd()))
 }
 
@@ -29,7 +28,6 @@ func Size(f *os.File) (int, int) {
 	if f == nil {
 		return 0, 0
 	}
-	//nolint:gosec // file descriptor fits in int
 	w, h, err := term.GetSize(int(f.Fd()))
 	if err != nil {
 		return 0, 0
