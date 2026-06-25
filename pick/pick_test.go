@@ -24,3 +24,14 @@ func TestErrCanceledIsSet(t *testing.T) {
 
 	require.EqualError(t, pick.ErrCanceled, "canceled")
 }
+
+func TestMultiSelectAcceptsFilterOption(t *testing.T) {
+	t.Parallel()
+
+	var theme huh.Theme
+
+	values, err := pick.MultiSelect[int]("title", nil, theme, 3, false, pick.WithFilter())
+
+	require.NoError(t, err)
+	require.Nil(t, values)
+}

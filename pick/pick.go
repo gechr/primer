@@ -61,19 +61,22 @@ func collectValues[T any](indices []int, items []Item[T]) []T {
 }
 
 // MultiSelect presents a multi-select UI and returns the selected values.
-// Returns ErrCanceled if the user cancels.
+// Returns ErrCanceled if the user cancels. Pass [WithFilter] to enable "/"
+// filtering of the list.
 func MultiSelect[T any](
 	title string,
 	items []Item[T],
 	theme huh.Theme,
 	maxHeight int,
 	showHelp bool,
+	opts ...Option,
 ) ([]T, error) {
 	if len(items) == 0 {
 		return nil, nil
 	}
 
-	opts := buildOptions(items)
+	cfg := newConfig(opts)
+	options := buildOptions(items)
 
 	var selected []int
 
@@ -81,9 +84,9 @@ func MultiSelect[T any](
 		huh.NewGroup(
 			huh.NewMultiSelect[int]().
 				Title(title).
-				Options(opts...).
+				Options(options...).
 				Value(&selected).
-				Filterable(false).
+				Filterable(cfg.filterable).
 				Height(selectHeight(maxHeight, len(items))),
 		),
 	)
