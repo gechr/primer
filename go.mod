@@ -12,7 +12,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.4
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/charmbracelet/x/ansi v0.11.7
-	github.com/gechr/x v0.1.4
+	github.com/gechr/x v0.1.6
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/term v0.44.0
 )
