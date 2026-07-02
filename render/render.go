@@ -1,8 +1,11 @@
 // Package render provides terminal-friendly markdown and diff rendering.
 //
 // Markdown is rendered via glamour with a cached renderer keyed on
-// (width, style). Diffs are highlighted with chroma using a unified
-// diff lexer. Both functions are safe for concurrent use.
+// (width, style) for one-shot CLI output. MarkdownRenderer provides a
+// stateful cache keyed by caller identity and width for TUIs that repaint
+// stable documents while background refreshes may change their content.
+// Diffs are highlighted with chroma using a unified diff lexer. All renderers
+// in this package are safe for concurrent use.
 package render
 
 import (
@@ -39,6 +42,8 @@ var glamourCache struct {
 	renderer *glamour.TermRenderer
 }
 
+var chromaStyleMu sync.Mutex
+
 // Markdown renders markdown text for terminal display using glamour.
 // style is a glamour style name ("dracula", "dark", "light", "notty").
 // Falls back to indented plain text on error or when width is zero.
@@ -59,7 +64,9 @@ func Markdown(text string, width int, style string) string {
 		glamourCache.mu.Unlock()
 		return plainFallback(text, width)
 	}
+	chromaStyleMu.Lock()
 	rendered, err := r.Render(text)
+	chromaStyleMu.Unlock()
 	glamourCache.mu.Unlock()
 
 	if err != nil || strings.TrimSpace(rendered) == "" {
@@ -81,7 +88,9 @@ func Diff(text string) string {
 	}
 	lexer = chroma.Coalesce(lexer)
 
+	chromaStyleMu.Lock()
 	style := styles.Get("monokai")
+	chromaStyleMu.Unlock()
 	formatter := formatters.TTY256
 
 	iterator, err := lexer.Tokenise(nil, text)

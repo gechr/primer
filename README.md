@@ -19,7 +19,7 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `pick`           | Generic multi-select interactive prompt built on huh                       |
 | `picker`         | Cursor-navigable options overlay with row/choice selection                 |
 | `prompt`         | Scrollable modal prompts with choice groups, hints, and interaction state  |
-| `render`         | Terminal markdown (glamour) and diff (chroma) rendering                    |
+| `render`         | Terminal markdown, theme-derived glamour styles, and diff rendering        |
 | `scrollbar`      | Proportional scrollbar rendering and scroll position math                  |
 | `scrollwheel`    | Mouse wheel event coalescing for Bubble Tea filters                        |
 | `table`          | ANSI-aware column alignment, typed sorting, and generic table rendering    |
