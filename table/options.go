@@ -1,5 +1,9 @@
 package table
 
+import (
+	xansi "github.com/charmbracelet/x/ansi"
+)
+
 // Padding controls the text alignment within a column.
 type Padding int
 
@@ -33,6 +37,16 @@ func WithPadding(p Padding) GridOption {
 	}
 }
 
+// WithWidthMethod sets the method used to measure and truncate cell text.
+// The default (xansi.WcWidth) counts per-rune wcwidth; use
+// xansi.GraphemeWidth on terminals that perform grapheme clustering
+// (mode 2027), where ZWJ and VS16 emoji sequences occupy a single glyph.
+func WithWidthMethod(m xansi.Method) GridOption {
+	return func(g *Grid) {
+		g.WidthMethod = m
+	}
+}
+
 // Option configures a Renderer.
 type Option func(*config)
 
@@ -45,7 +59,16 @@ type config struct {
 	showIndex      bool
 	tty            bool // true when outputting to a terminal
 	termWidth      int  // terminal width for flex columns (0 = disabled)
+	gridOpts       []GridOption
 	headerRenderer HeaderRenderer
+}
+
+// WithGridOptions sets grid options applied to every grid the renderer
+// builds, e.g. WithWidthMethod(xansi.GraphemeWidth) for grapheme-clustering
+// terminals. Options that the renderer manages itself (flex columns, max
+// width, TTY) are overridden by the renderer's own configuration.
+func WithGridOptions(opts ...GridOption) Option {
+	return func(c *config) { c.gridOpts = opts }
 }
 
 // WithReverse sets whether to reverse row order (newest first at top).

@@ -108,6 +108,38 @@ func TestRenderFormatsRowsWithReverseIndex(t *testing.T) {
 	require.Len(t, got.ColWidths, 3)
 }
 
+func TestRenderThreadsGridOptionsWidthMethod(t *testing.T) {
+	t.Parallel()
+
+	columns := []table.Column[record]{
+		{
+			Name:   "name",
+			Header: "Name",
+			Render: func(r record, _ *table.RenderContext) table.Cell { return table.TextCell(r.Name) },
+		},
+		{
+			Name:   "id",
+			Header: "ID",
+			Render: func(r record, _ *table.RenderContext) table.Cell { return table.TextCell(strconv.Itoa(r.ID)) },
+		},
+	}
+	renderer := table.NewRenderer(
+		columns,
+		newContext(testTheme{}),
+		table.WithGridOptions(table.WithWidthMethod(xansi.GraphemeWidth)),
+	)
+
+	got := renderer.Render([]record{
+		{ID: 1, Name: "👨‍💻 x ⚠️"},
+		{ID: 2, Name: "plain ascii"},
+	})
+
+	require.Equal(t,
+		xansi.GraphemeWidth.StringWidth(got.Rows[0].Display),
+		xansi.GraphemeWidth.StringWidth(got.Rows[1].Display),
+	)
+}
+
 func TestRenderTruncatesFlexColumnsToTermWidth(t *testing.T) {
 	t.Parallel()
 

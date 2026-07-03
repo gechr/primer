@@ -105,17 +105,16 @@ func (r *Renderer[T]) RenderHeaderOnly(sampleWidths []int) (string, []int) {
 		} else {
 			header[i] = r.ctx.Theme.RenderBold(col.Header)
 		}
+		// AlignColumns widens each column to fit the header, so the sample
+		// only needs to enforce the caller's minimum width.
 		w := 0
 		if i < len(sampleWidths) {
 			w = sampleWidths[i]
 		}
-		if hw := VisibleWidth(header[i]); hw > w {
-			w = hw
-		}
 		samples[i] = strings.Repeat(" ", w)
 	}
 	flexCols := collectFlexCols(r.columns, 0)
-	g := NewGrid([][]string{header, samples})
+	g := NewGrid([][]string{header, samples}, r.cfg.gridOpts...)
 	g.TTY = r.cfg.tty
 	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
 		g.FlexCols = flexCols
@@ -205,7 +204,7 @@ func (r *Renderer[T]) format(rows []Row[T]) RenderedTable[T] {
 
 	// Prepend header and align.
 	allRows := append([][]string{header}, grid...)
-	g := NewGrid(allRows)
+	g := NewGrid(allRows, r.cfg.gridOpts...)
 	g.TTY = r.cfg.tty
 	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
 		g.FlexCols = flexCols

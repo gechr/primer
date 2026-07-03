@@ -82,6 +82,60 @@ func TestAlignColumnsPaddingModes(t *testing.T) {
 	}
 }
 
+func TestAlignColumnsWidthMethod(t *testing.T) {
+	t.Parallel()
+
+	// ZWJ (👨‍💻) and VS16 (⚠️) emoji sequences: wcwidth and grapheme
+	// clustering disagree on their width, so the two rows only align under
+	// the method that matches the measurement.
+	rows := func() [][]string {
+		return [][]string{
+			{"👨‍💻 x ⚠️", "end"},
+			{"plain ascii", "end"},
+		}
+	}
+
+	t.Run("grapheme", func(t *testing.T) {
+		t.Parallel()
+
+		grid := table.NewGrid(rows(), table.WithWidthMethod(ansi.GraphemeWidth))
+		aligned, _ := grid.AlignColumns()
+
+		require.Equal(t,
+			ansi.GraphemeWidth.StringWidth(aligned[0]),
+			ansi.GraphemeWidth.StringWidth(aligned[1]),
+		)
+	})
+
+	t.Run("default wcwidth", func(t *testing.T) {
+		t.Parallel()
+
+		grid := table.NewGrid(rows())
+		aligned, _ := grid.AlignColumns()
+
+		require.Equal(t,
+			ansi.WcWidth.StringWidth(aligned[0]),
+			ansi.WcWidth.StringWidth(aligned[1]),
+		)
+	})
+}
+
+func TestAlignColumnsTruncatesFlexColumnsWithWidthMethod(t *testing.T) {
+	t.Parallel()
+
+	grid := table.NewGrid([][]string{
+		{"1", "👨‍💻👨‍💻👨‍💻"},
+		{"2", "xy"},
+	}, table.WithWidthMethod(ansi.GraphemeWidth), table.WithFlexColumns(1))
+	grid.MaxWidth = 8
+
+	aligned, widths := grid.AlignColumns()
+
+	require.Equal(t, []int{1, 5}, widths)
+	require.Contains(t, grid.Rows[0][1], "…")
+	require.LessOrEqual(t, ansi.GraphemeWidth.StringWidth(aligned[0]), 8)
+}
+
 func TestAlignColumnsTruncatesFlexColumnsAndWrapsTTYSpaces(t *testing.T) {
 	t.Parallel()
 

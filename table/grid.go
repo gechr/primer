@@ -15,7 +15,8 @@ type Grid struct {
 	MaxWidth      int   // terminal width; flex columns shrink to fit (0 = disabled)
 	Padding       Padding
 	Rows          [][]string
-	TTY           bool // when true, wrap spaces in SGR 8 to prevent tab optimization
+	TTY           bool         // when true, wrap spaces in SGR 8 to prevent tab optimization
+	WidthMethod   xansi.Method // width measurement; zero value is xansi.WcWidth
 }
 
 // NewGrid creates a Grid with the given rows and applies any options.
@@ -50,7 +51,7 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 	colWidths := make([]int, maxCols)
 	for _, row := range g.Rows {
 		for c, field := range row {
-			w := VisibleWidth(field)
+			w := g.WidthMethod.StringWidth(field)
 			if w > colWidths[c] {
 				colWidths[c] = w
 			}
@@ -63,7 +64,11 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 		for _, flexCol := range flexCols {
 			for i, row := range g.Rows {
 				if flexCol < len(row) {
-					g.Rows[i][flexCol] = truncateVisible(row[flexCol], colWidths[flexCol])
+					g.Rows[i][flexCol] = truncateVisible(
+						row[flexCol],
+						colWidths[flexCol],
+						g.WidthMethod,
+					)
 				}
 			}
 		}
@@ -78,7 +83,7 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 			if c > 0 {
 				sb.WriteString(gap)
 			}
-			pad := colWidths[c] - VisibleWidth(field)
+			pad := colWidths[c] - g.WidthMethod.StringWidth(field)
 			lastCol := c == len(row)-1
 			switch g.Padding {
 			case PaddingLeft:
@@ -173,17 +178,17 @@ func spaces(n int, tty bool) string {
 	return s
 }
 
-// truncateVisible truncates s to maxWidth visible columns, appending "…" if
-// truncated. ANSI escape sequences are preserved but the visible text is cut.
-// x/ansi's Truncate includes the tail in maxWidth, so no extra ellipsis column
-// is reserved here.
-func truncateVisible(s string, maxWidth int) string {
+// truncateVisible truncates s to maxWidth visible columns as measured by
+// method, appending "…" if truncated. ANSI escape sequences are preserved but
+// the visible text is cut. x/ansi's Truncate includes the tail in maxWidth,
+// so no extra ellipsis column is reserved here.
+func truncateVisible(s string, maxWidth int, method xansi.Method) string {
 	if maxWidth <= 0 {
 		return ""
 	}
-	w := VisibleWidth(s)
+	w := method.StringWidth(s)
 	if w <= maxWidth {
 		return s
 	}
-	return xansi.WcWidth.Truncate(s, maxWidth, "…")
+	return method.Truncate(s, maxWidth, "…")
 }
