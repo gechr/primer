@@ -30,18 +30,6 @@ type Msg[T comparable] struct {
 // state; the wheel event will pass through to the normal update loop.
 type Resolver[T comparable] func(tea.Model) (T, bool)
 
-// Option configures a [Coalescer].
-type Option func(*config)
-
-type config struct {
-	delay time.Duration
-}
-
-// WithDelay sets the debounce window. Default is [DefaultDelay].
-func WithDelay(d time.Duration) Option {
-	return func(c *config) { c.delay = d }
-}
-
 // Coalescer batches rapid mouse wheel events and flushes them as a
 // single [Msg] after a short debounce window.
 type Coalescer[T comparable] struct {

@@ -51,34 +51,6 @@ type EditorStyles struct {
 // BodyFetchFunc fetches the body for an entry at the given index.
 type BodyFetchFunc func(index int) (string, error)
 
-// EditorOption configures an Editor created by [NewEditor].
-type EditorOption func(*editorConfig)
-
-type editorConfig struct {
-	bodyMinHeight int
-	fetchBody     BodyFetchFunc
-	styles        EditorStyles
-	width         int
-}
-
-// WithEditorWidth sets the editor width.
-func WithEditorWidth(w int) EditorOption { return func(c *editorConfig) { c.width = w } }
-
-// WithEditorBodyMinHeight sets the minimum body textarea height.
-func WithEditorBodyMinHeight(h int) EditorOption {
-	return func(c *editorConfig) { c.bodyMinHeight = h }
-}
-
-// WithEditorStyles sets the editor styles.
-func WithEditorStyles(s EditorStyles) EditorOption { return func(c *editorConfig) { c.styles = s } }
-
-// WithBodyFetch sets the function used to lazily fetch entry bodies.
-func WithBodyFetch(
-	fn BodyFetchFunc,
-) EditorOption {
-	return func(c *editorConfig) { c.fetchBody = fn }
-}
-
 type editorField int
 
 const (
