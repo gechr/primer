@@ -98,7 +98,7 @@ func TestAlignColumnsTruncatesFlexColumnsAndWrapsTTYSpaces(t *testing.T) {
 	require.Equal(t, []int{1, 5}, widths)
 	require.Contains(t, aligned[0], "\x1b[8m")
 	require.Contains(t, aligned[0], "\x1b[28m")
-	require.Equal(t, 7, table.VisibleWidth(aligned[0]))
+	require.Equal(t, 8, table.VisibleWidth(aligned[0]))
 	require.NotEqual(t, "abcdef", grid.Rows[0][1])
 	require.Contains(t, grid.Rows[0][1], "…")
 	require.True(t, strings.HasPrefix(ansi.Strip(aligned[1]), "2"))
@@ -117,6 +117,6 @@ func TestAlignColumnsShrinksMultipleFlexColumns(t *testing.T) {
 
 	require.Equal(t, []int{2, 3, 4, 3}, widths)
 	require.LessOrEqual(t, table.VisibleWidth(aligned[1]), 18)
-	require.Equal(t, "a…", ansi.Strip(grid.Rows[1][1]))
+	require.Equal(t, "ab…", ansi.Strip(grid.Rows[1][1]))
 	require.Equal(t, "wxyz", ansi.Strip(grid.Rows[1][2]))
 }

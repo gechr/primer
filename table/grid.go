@@ -173,8 +173,10 @@ func spaces(n int, tty bool) string {
 	return s
 }
 
-// truncateVisible truncates s to maxWidth visible characters, appending "…" if
+// truncateVisible truncates s to maxWidth visible columns, appending "…" if
 // truncated. ANSI escape sequences are preserved but the visible text is cut.
+// x/ansi's Truncate includes the tail in maxWidth, so no extra ellipsis column
+// is reserved here.
 func truncateVisible(s string, maxWidth int) string {
 	if maxWidth <= 0 {
 		return ""
@@ -183,5 +185,5 @@ func truncateVisible(s string, maxWidth int) string {
 	if w <= maxWidth {
 		return s
 	}
-	return xansi.WcWidth.Truncate(s, maxWidth-1, "…")
+	return xansi.WcWidth.Truncate(s, maxWidth, "…")
 }

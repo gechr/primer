@@ -129,8 +129,8 @@ func TestRenderTruncatesFlexColumnsToTermWidth(t *testing.T) {
 	got := renderer.Render([]record{{ID: 1, Name: "abcdef"}})
 
 	require.Equal(t, []int{2, 4}, got.ColWidths)
-	require.Equal(t, "1   ab…", xansi.Strip(got.Rows[0].Display))
-	require.Equal(t, 7, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)))
+	require.Equal(t, "1   abc…", xansi.Strip(got.Rows[0].Display))
+	require.Equal(t, 8, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)))
 }
 
 func TestRenderShrinksMultipleFlexColumnsToTermWidth(t *testing.T) {
@@ -160,8 +160,8 @@ func TestRenderShrinksMultipleFlexColumnsToTermWidth(t *testing.T) {
 	got := renderer.Render([]record{{ID: 1, Name: "abcdefghijkl"}})
 
 	require.Equal(t, []int{2, 8, 4}, got.ColWidths)
-	require.Equal(t, "1   abcdef…   wxyz", xansi.Strip(got.Rows[0].Display))
-	require.LessOrEqual(t, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)), 18)
+	require.Equal(t, "1   abcdefg…  wxyz", xansi.Strip(got.Rows[0].Display))
+	require.Equal(t, 18, xansi.WcWidth.StringWidth(xansi.Strip(got.Rows[0].Display)))
 }
 
 func TestRenderReturnsEmptyTableForEmptyInputs(t *testing.T) {
