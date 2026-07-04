@@ -20,6 +20,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	xstrings "github.com/gechr/x/strings"
 )
 
 // glamourCache holds a cached renderer to avoid re-creating it on every call.
@@ -57,7 +58,7 @@ func Markdown(text string, width int, style string) string {
 	chromaStyleMu.Unlock()
 	glamourCache.mu.Unlock()
 
-	if err != nil || strings.TrimSpace(rendered) == "" {
+	if err != nil || xstrings.IsBlank(rendered) {
 		return plainFallback(text, width)
 	}
 	return strings.TrimRight(rendered, "\n")

@@ -7,11 +7,11 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/huh/v2"
-	"github.com/gechr/primer/term"
+	"github.com/gechr/x/terminal"
 )
 
 func terminalWidthForPrompt(file *os.File) int {
-	width, _ := term.Size(file)
+	width, _ := terminal.Size(file)
 	if width <= 0 {
 		return 0
 	}
