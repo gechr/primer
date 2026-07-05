@@ -5,14 +5,14 @@ go 1.26.4
 tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 require (
-	charm.land/bubbles/v2 v2.1.0
+	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/glamour/v2 v2.0.1
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.0.5
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/charmbracelet/x/ansi v0.11.7
-	github.com/gechr/x v0.2.8
+	github.com/gechr/x v0.2.9
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -150,7 +150,7 @@ require (
 	github.com/matoous/godox v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.23 // indirect
+	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mgechev/revive v1.15.0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
