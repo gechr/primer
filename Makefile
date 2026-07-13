@@ -12,6 +12,7 @@ all: fmt lint test
 
 .PHONY: fmt
 fmt:
+	@clover format
 	@rumdl fmt --quiet
 	@$(GO) fix ./...
 	@$(GO) tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint fmt --enable=gci,golines,gofumpt
@@ -36,5 +37,6 @@ test:
 
 .PHONY: update
 update:
+	@clover run
 	@$(GO) get $(GO_TOOLS) $(shell $(GO) list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all)
 	@$(GO) mod tidy
