@@ -64,7 +64,7 @@ func TestRendererOptions(t *testing.T) {
 	require.Equal(t, "Name", renderer.Columns()[0].Header)
 	got := renderer.Render([]int{1, 2})
 
-	require.Contains(t, got.Header, "\x1b[8m")
+	require.Equal(t, " \x1b[8m       \x1b[28m\x1b[8m  \x1b[28mName", got.Header)
 	require.Len(t, got.Rows, 2)
 	require.Equal(t, 2, got.Rows[0].Item)
 	require.Equal(t, 1, got.Rows[1].Item)

@@ -40,8 +40,7 @@ func TestModelRenderReturnsHelpOnly(t *testing.T) {
 	}
 
 	got := ansi.Strip(m.Render())
-	require.Contains(t, got, "scroll")
-	require.NotContains(t, got, "Diffing")
+	require.Equal(t, " up/down scroll\ncomment", got)
 }
 
 func TestModelRenderPreservesANSIInDescription(t *testing.T) {
@@ -54,5 +53,5 @@ func TestModelRenderPreservesANSIInDescription(t *testing.T) {
 		},
 	}
 
-	require.Contains(t, ansi.Strip(m.Render()), "refresh on")
+	require.Equal(t, " r refresh on", ansi.Strip(m.Render()))
 }

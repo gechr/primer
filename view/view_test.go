@@ -152,7 +152,7 @@ func TestRenderFrameComposesFooterComponents(t *testing.T) {
 		},
 	}))
 
-	require.Contains(t, got, "Help  Status")
+	require.Equal(t, "body        \n            \n────────────\nHelp  Status", got)
 }
 
 func TestRenderFrameBreaksFooterRows(t *testing.T) {
@@ -177,8 +177,7 @@ func TestRenderFrameBreaksFooterRows(t *testing.T) {
 		},
 	}))
 
-	require.Contains(t, got, "\nHelp")
-	require.Contains(t, got, "\n      Status")
+	require.Equal(t, "body        \n────────────\nHelp        \n      Status\n            ", got)
 }
 
 func TestRenderFrameTruncatesRightAlignedFooterComponent(t *testing.T) {
@@ -201,5 +200,5 @@ func TestRenderFrameTruncatesRightAlignedFooterComponent(t *testing.T) {
 		},
 	}))
 
-	require.Contains(t, got, "\nDif…")
+	require.Equal(t, "body\n────\nDif…", got)
 }

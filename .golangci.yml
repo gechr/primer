@@ -90,11 +90,15 @@ linters:
     gocognit:
       min-complexity: 40
     gocritic:
+      enabled-checks:
+        - ruleguard
       settings:
         captLocal:
           paramsOnly: false
         underef:
           skipRecvDeref: false
+        ruleguard:
+          rules: gorules/rules.go
     gomodguard_v2:
       blocked:
         - module: github.com/golang/protobuf

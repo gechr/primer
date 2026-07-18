@@ -32,7 +32,7 @@ func TestRenderScrollableUsesViewportWhenContentOverflows(t *testing.T) {
 
 	lines := strings.Split(ansi.Strip(got), "\n")
 	require.NotEmpty(t, lines)
-	require.Contains(t, got, "┃")
+	require.Equal(t, "line 1  █ \nline 2  ┃ \nline 3  ┃ ", got)
 }
 
 func TestRenderScrollableRendersSimpleBoxWhenContentFits(t *testing.T) {

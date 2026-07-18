@@ -134,12 +134,7 @@ func TestViewContainsChoices(t *testing.T) {
 	)
 
 	view := ansi.Strip(m.View())
-	require.Contains(t, view, "red")
-	require.Contains(t, view, "green")
-	require.Contains(t, view, "blue")
-	require.Contains(t, view, "small")
-	require.Contains(t, view, "medium")
-	require.Contains(t, view, "large")
+	require.Equal(t, "> Color  red  green  blue\n   Size  small  medium  large\n\n", view)
 }
 
 func TestViewContainsCursor(t *testing.T) {
@@ -167,7 +162,7 @@ func TestViewContainsLockedSuffix(t *testing.T) {
 	)
 
 	view := ansi.Strip(m.View())
-	require.Contains(t, view, "(CLI)")
+	require.Equal(t, "> Color  red  green  blue  (CLI)\n   Size  small  medium  large\n\n", view)
 }
 
 func TestViewContainsHints(t *testing.T) {
@@ -183,10 +178,11 @@ func TestViewContainsHints(t *testing.T) {
 	}
 
 	view := ansi.Strip(m.View())
-	require.Contains(t, view, "enter")
-	require.Contains(t, view, "apply")
-	require.Contains(t, view, "esc")
-	require.Contains(t, view, "cancel")
+	require.Equal(
+		t,
+		"> Color  red  green  blue\n   Size  small  medium  large\n\nenter apply  esc cancel",
+		view,
+	)
 }
 
 func TestViewCursorLineBG(t *testing.T) {
@@ -200,5 +196,9 @@ func TestViewCursorLineBG(t *testing.T) {
 	)
 
 	view := m.View()
-	require.Contains(t, view, "\x1b[48;2;40;10;30m")
+	require.Equal(
+		t,
+		"\x1b[48;2;40;10;30m> Color  red  green  blue    \x1b[0m\n   Size  small  medium  large\n\n",
+		view,
+	)
 }

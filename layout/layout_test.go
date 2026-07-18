@@ -12,9 +12,8 @@ import (
 func TestNormalizeLineExpandsTabs(t *testing.T) {
 	got := layout.NormalizeLine("left\tright", 14)
 
-	require.NotContains(t, got, "\t")
+	require.Equal(t, "left    right ", got)
 	require.Equal(t, 14, ansi.WcWidth.StringWidth(got))
-	require.Contains(t, got, "left    right")
 }
 
 func TestNormalizeLineTruncatesToWidth(t *testing.T) {
@@ -46,7 +45,7 @@ func TestWrapLinesExpandsTabs(t *testing.T) {
 	got := layout.WrapLines("\thello", 0)
 
 	require.Len(t, got, 1)
-	require.Contains(t, got[0], "    hello")
+	require.Equal(t, "    hello", got[0])
 }
 
 func TestHardWrapNoOp(t *testing.T) {
@@ -106,9 +105,8 @@ func TestPreserveBackgroundWidthPadsVisibleWidth(t *testing.T) {
 func TestFillPadsToHeight(t *testing.T) {
 	got := layout.Fill("left\tright", 12, 2)
 
-	require.NotContains(t, got, "\t")
 	lines := strings.Split(got, "\n")
 	require.Len(t, lines, 2)
-	require.Contains(t, lines[0], "left    right")
+	require.Equal(t, "left    right", lines[0])
 	require.Equal(t, 12, ansi.WcWidth.StringWidth(lines[1]))
 }

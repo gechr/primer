@@ -35,11 +35,10 @@ func TestRenderTwoColumnLayout(t *testing.T) {
 	require.GreaterOrEqual(t, len(lines), 2)
 
 	// First row has both columns: "j/k  navigate" + gutter + "q  quit".
-	require.Contains(t, lines[0], "navigate")
-	require.Contains(t, lines[0], "quit")
+	require.Equal(t, "  j/k  navigate        q  quit", lines[0])
 
 	// Second row has only left column.
-	require.Contains(t, lines[1], "select")
+	require.Equal(t, "enter  select", lines[1])
 }
 
 func TestRenderDismissFooter(t *testing.T) {
@@ -57,7 +56,7 @@ func TestRenderDismissFooter(t *testing.T) {
 		},
 	}.Render()
 
-	require.Contains(t, ansi.Strip(got), "Press any key")
+	require.Equal(t, "a  alpha    b  beta\n\n   Press any key", ansi.Strip(got))
 }
 
 func TestRenderOddPairCount(t *testing.T) {
@@ -74,7 +73,7 @@ func TestRenderOddPairCount(t *testing.T) {
 
 	lines := strings.Split(ansi.Strip(got), "\n")
 	// Single pair -> 1 row.
-	require.Contains(t, lines[0], "one")
+	require.Equal(t, "a  one", lines[0])
 }
 
 func TestRenderKeyRightAlignment(t *testing.T) {
