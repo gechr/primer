@@ -12,9 +12,10 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | `dialog`      | Modal overlay stack, framing shell, and async input grace                  |
 | `filter`      | Smart-case text matching with `!` negate, `^` prefix, `$` suffix modifiers |
 | `flash`       | Transient status message state with monotonic-ID expiry                    |
+| `form`        | Multi-field modal form with focus ring, dirty guard, and autocomplete      |
 | `helpbar`     | Wrapped footer hints                                                       |
 | `helpsheet`   | Two-column keybinding overlay sheet with dismiss footer                    |
-| `input`       | Textarea factory with sensible TUI defaults and functional options         |
+| `input`       | Text-entry wrappers, textarea factory, and external editor hop             |
 | `key`         | Key-name constants, inline key highlighting, rebinding, and key replay     |
 | `layout`      | Line normalization, ANSI-aware hard wrapping, and separator rendering      |
 | `list`        | Scrollable cursor list over rendered rows with optional type-to-filter     |
