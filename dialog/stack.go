@@ -165,6 +165,29 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 	return cmd, nil, ResultNone
 }
 
+// Pop removes and returns the top dialog without a result, or nil when none
+// is open - the seam an owner uses to close a dialog it resolved itself, such
+// as a held-open form (see [Form.HoldOnSubmit]) whose async write completed.
+// For the grace bookkeeping it counts as a close, so a graced dialog of the
+// same kind reopening right after skips its grace exactly as a keyed close
+// would.
+func (s *Stack) Pop() Dialog {
+	if !s.Active() {
+		return nil
+	}
+	top := len(s.dialogs) - 1
+	d := s.dialogs[top]
+	s.dialogs = s.dialogs[:top]
+	if t := s.gracedType[top]; t != nil {
+		s.lastClosedType = t
+		s.lastClosedAt = s.now()
+	}
+	s.gracedType = s.gracedType[:top]
+	s.graceActive = false
+	s.geo = frameGeometry{}
+	return d
+}
+
 // ScrollbarHitbox returns the screen-space hitbox of the top dialog's internal
 // scrollbar as of the last View, for owners that hit-test mouse presses or
 // drags against it. It reports false when no dialog is open, the body fits
