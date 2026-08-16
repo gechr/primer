@@ -4,27 +4,33 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 
 ## Packages
 
-| Package          | Description                                                                |
-| ---------------- | -------------------------------------------------------------------------- |
-| `ansi/hyperlink` | OSC 8 terminal hyperlinks with TTY-aware fallback modes                    |
-| `filter`         | Smart-case text matching with `!` negate, `^` prefix, `$` suffix modifiers |
-| `flash`          | Transient status message state with monotonic-ID expiry                    |
-| `human`          | Human-readable time formatting, path contraction, and path expansion       |
-| `helpbar`        | Wrapped footer hints                                                       |
-| `input`          | Textarea factory with sensible TUI defaults and functional options         |
-| `helpsheet`      | Two-column keybinding overlay sheet with dismiss footer                    |
-| `key`            | Shared key-name constants plus inline key-highlight rendering              |
-| `layout`         | Line normalization, ANSI-aware hard wrapping, and separator rendering      |
-| `overlay`        | Centered foreground placement over background content                      |
-| `pick`           | Generic multi-select interactive prompt built on huh                       |
-| `picker`         | Cursor-navigable options overlay with row/choice selection                 |
-| `prompt`         | Scrollable modal prompts with choice groups, hints, and interaction state  |
-| `render`         | Terminal markdown, theme-derived glamour styles, and diff rendering        |
-| `scrollbar`      | Proportional scrollbar rendering and scroll position math                  |
-| `scrollwheel`    | Mouse wheel event coalescing for Bubble Tea filters                        |
-| `table`          | ANSI-aware column alignment, typed sorting, and generic table rendering    |
-| `term`           | Terminal detection and size queries                                        |
-| `view`           | Viewport body rendering and composable fullscreen frame footers            |
+| Package       | Description                                                                |
+| ------------- | -------------------------------------------------------------------------- |
+| `activity`    | Observational mutation log with monotonic IDs and bounded retention        |
+| `cache`       | Generic TTL memoizer with newest-fetch-wins commits                        |
+| `carousel`    | Wrapping tab strip with one active label                                   |
+| `dialog`      | Modal overlay stack, framing shell, and async input grace                  |
+| `filter`      | Smart-case text matching with `!` negate, `^` prefix, `$` suffix modifiers |
+| `flash`       | Transient status message state with monotonic-ID expiry                    |
+| `helpbar`     | Wrapped footer hints                                                       |
+| `helpsheet`   | Two-column keybinding overlay sheet with dismiss footer                    |
+| `input`       | Textarea factory with sensible TUI defaults and functional options         |
+| `key`         | Key-name constants, inline key highlighting, rebinding, and key replay     |
+| `layout`      | Line normalization, ANSI-aware hard wrapping, and separator rendering      |
+| `list`        | Scrollable cursor list over rendered rows with optional type-to-filter     |
+| `overlay`     | Centered foreground placement over background content                      |
+| `palette`     | Fuzzy type-to-filter command list with replayable keybindings              |
+| `pick`        | Generic multi-select interactive prompt built on huh                       |
+| `picker`      | Cursor-navigable options overlay with row/choice selection                 |
+| `pill`        | Labeled cycle-selector rendering (`label ‹ value ›`)                       |
+| `prompt`      | Scrollable modal prompts with choice groups, hints, and interaction state  |
+| `render`      | Terminal markdown, theme-derived glamour styles, and diff rendering        |
+| `scrollbar`   | Proportional scrollbar rendering and scroll position math                  |
+| `scrollwheel` | Mouse wheel event coalescing for Bubble Tea filters                        |
+| `table`       | ANSI-aware column alignment, typed sorting, and generic table rendering    |
+| `task`        | Generation-tracked async work manager with per-scope staleness             |
+| `titlebox`    | Rounded box with the title embedded in the top border                      |
+| `view`        | Viewport body rendering and composable fullscreen frame footers            |
 
 ## Install
 
