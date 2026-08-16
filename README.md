@@ -7,9 +7,10 @@ A [Charm](https://github.com/charmbracelet)-native library of reusable terminal 
 | Package       | Description                                                                |
 | ------------- | -------------------------------------------------------------------------- |
 | `activity`    | Observational mutation log with monotonic IDs and bounded retention        |
+| `button`      | Focusable button row with click hit-testing                                |
 | `cache`       | Generic TTL memoizer with newest-fetch-wins commits                        |
 | `carousel`    | Wrapping tab strip with one active label                                   |
-| `dialog`      | Modal overlay stack, framing shell, and async input grace                  |
+| `dialog`      | Modal overlay stack, framing shell, mouse clicks, and stock dialogs        |
 | `filter`      | Smart-case text matching with `!` negate, `^` prefix, `$` suffix modifiers |
 | `flash`       | Transient status message state with monotonic-ID expiry                    |
 | `form`        | Multi-field modal form with focus ring, dirty guard, and autocomplete      |
