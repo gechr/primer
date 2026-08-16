@@ -5,7 +5,9 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	lg "charm.land/lipgloss/v2"
 	"github.com/gechr/primer/overlay"
+	"github.com/gechr/primer/scrollbar"
 )
 
 // The input grace a dialog pushed from an async result opens behind. A dialog
@@ -51,6 +53,12 @@ type Stack struct {
 	// for the same-kind reopen exemption.
 	lastClosedType reflect.Type
 	lastClosedAt   time.Time
+
+	// geo is the top dialog's placement from the last View, for translating
+	// mouse coordinates into content space; every render refreshes it and any
+	// push or pop invalidates it, so a click can never be translated against a
+	// dialog that is no longer on top.
+	geo frameGeometry
 }
 
 // New returns an empty Stack that frames its dialogs with shell.
@@ -64,6 +72,7 @@ func (s *Stack) Push(d Dialog) {
 	s.dialogs = append(s.dialogs, d)
 	s.gracedType = append(s.gracedType, nil)
 	s.graceActive = false
+	s.geo = frameGeometry{}
 }
 
 // PushWithGrace opens d as the new top dialog behind a brief input grace, for
@@ -131,6 +140,14 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 			return nil, nil, ResultNone
 		}
 	}
+	// A left click inside the framed content is translated into the dialog's
+	// own coordinate space and delivered as a ClickMsg; any other click (the
+	// chrome, outside the box, another button) routes through untranslated.
+	if mc, ok := msg.(tea.MouseClickMsg); ok && mc.Button == tea.MouseLeft {
+		if x, y, ok := s.geo.translate(mc.X, mc.Y); ok {
+			msg = ClickMsg{X: x, Y: y}
+		}
+	}
 	top := len(s.dialogs) - 1
 	next, cmd, res := s.dialogs[top].Update(msg)
 	s.dialogs[top] = next
@@ -142,23 +159,45 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 		}
 		s.gracedType = s.gracedType[:top]
 		s.graceActive = false
+		s.geo = frameGeometry{}
 		return cmd, next, res
 	}
 	return cmd, nil, ResultNone
+}
+
+// ScrollbarHitbox returns the screen-space hitbox of the top dialog's internal
+// scrollbar as of the last View, for owners that hit-test mouse presses or
+// drags against it. It reports false when no dialog is open, the body fits
+// without scrolling, or nothing has rendered since the stack last changed.
+func (s *Stack) ScrollbarHitbox() (scrollbar.Hitbox, bool) {
+	return s.geo.bar, s.geo.valid && s.geo.hasBar
 }
 
 // View composites the top dialog over backdrop, which must already be screenW
 // columns by screenH rows. With no dialog open it returns backdrop unchanged.
 func (s *Stack) View(backdrop string, screenW, screenH int) string {
 	if !s.Active() {
+		s.geo = frameGeometry{}
 		return backdrop
 	}
 	top := s.Top()
 	// A self-framed dialog draws its own border and sizing; place it verbatim
 	// rather than boxing and scrolling it through the Shell, which would clip
-	// and interleave the dialog's pre-drawn box.
+	// and interleave the dialog's pre-drawn box. Its whole rendering is its
+	// content, so clicks translate against the placement origin alone.
 	if sf, ok := top.(SelfFramed); ok && sf.SelfFramed() {
-		return overlay.Place(backdrop, top.Content(screenW), screenW, screenH, overlay.Center)
+		content := top.Content(screenW)
+		x, y := overlay.Origin(content, screenW, screenH, overlay.Center)
+		s.geo = frameGeometry{
+			contentX: x,
+			contentY: y,
+			contentW: lg.Width(content),
+			contentH: lg.Height(content),
+			valid:    true,
+		}
+		return overlay.Place(backdrop, content, screenW, screenH, overlay.Center)
 	}
-	return s.shell.Frame(backdrop, top, screenW, screenH)
+	var out string
+	out, s.geo = s.shell.frame(backdrop, top, screenW, screenH)
+	return out
 }

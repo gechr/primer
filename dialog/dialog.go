@@ -51,12 +51,25 @@ type Dialog interface {
 	Hints() []key.Hint
 }
 
+// ClickMsg is a left mouse click translated into the top dialog's content
+// space: X is the column and Y the row within the body the dialog rendered
+// through Content, already adjusted for the Shell's frame, title, and scroll
+// offset. The Stack delivers it through Update in place of the raw
+// screen-space click whenever the click lands inside the framed content;
+// clicks on the Shell's chrome or outside the box keep arriving as
+// tea.MouseClickMsg. A click on a Shell-drawn title row arrives with a
+// negative Y, so a dialog checks its own layout before acting.
+type ClickMsg struct {
+	X, Y int
+}
+
 // DismissResult is the shared Update rule for momentary dialogs (a help
 // sheet, an activity log): the first key press or mouse click closes them,
-// every other message leaves them open.
+// every other message leaves them open. A click inside the framed content
+// arrives as [ClickMsg] rather than tea.MouseClickMsg, so both count.
 func DismissResult(msg tea.Msg) Result {
 	switch msg.(type) {
-	case tea.KeyPressMsg, tea.MouseClickMsg:
+	case tea.KeyPressMsg, tea.MouseClickMsg, ClickMsg:
 		return ResultClose
 	default:
 		return ResultNone

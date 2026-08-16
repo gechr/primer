@@ -27,6 +27,25 @@ func Place(background, foreground string, width, height int, placement Placement
 	}
 }
 
+// Origin returns the screen cell (column, row) where Place puts foreground's
+// top-left corner on a width-by-height screen. It shares Place's placement
+// math, so a caller translating mouse coordinates into overlay space can
+// never drift from where the overlay was actually drawn.
+func Origin(foreground string, width, height int, _ Placement) (int, int) {
+	fgLines := strings.Split(foreground, nl)
+
+	fgWidth := 0
+	for _, line := range fgLines {
+		if w := xansi.WcWidth.StringWidth(line); w > fgWidth {
+			fgWidth = w
+		}
+	}
+
+	startRow := max(0, (height-len(fgLines))/centerDivisor)
+	startCol := max(0, (width-fgWidth)/centerDivisor)
+	return startCol, startRow
+}
+
 func center(background, foreground string, width, height int) string {
 	bgLines := strings.Split(background, nl)
 	fgLines := strings.Split(foreground, nl)
@@ -39,16 +58,8 @@ func center(background, foreground string, width, height int) string {
 			fgWidth = w
 		}
 	}
-	fgHeight := len(fgLines)
 
-	startRow := (height - fgHeight) / centerDivisor
-	startCol := (width - fgWidth) / centerDivisor
-	if startRow < 0 {
-		startRow = 0
-	}
-	if startCol < 0 {
-		startCol = 0
-	}
+	startCol, startRow := Origin(foreground, width, height, Center)
 
 	for len(bgLines) < height {
 		bgLines = append(bgLines, "")

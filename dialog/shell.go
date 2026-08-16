@@ -48,6 +48,11 @@ type ShellConfig struct {
 	Scrollbar scrollbar.Config
 }
 
+// scrollChrome is the columns a scrolling body spends beside itself: the
+// scrollbar plus the padding column RenderScrollable adds between the bar and
+// the border.
+const scrollChrome = 2
+
 // Shell frames a dialog: it caps the box to a fraction of the screen and to an
 // absolute maximum, scrolls an overflowing body internally, and centers the
 // result over a backdrop. It carries value semantics and is safe to copy - the
@@ -91,10 +96,63 @@ func clampAxis(screen, margin int, fraction float64, limit int) int {
 	return max(1, v)
 }
 
+// frameGeometry records where the Shell placed a dialog's content during the
+// last render, so the Stack can translate screen-space mouse coordinates into
+// the content space the dialog laid out. contentX/contentY are the screen
+// cell of the content's top-left; contentW/contentH its visible size; titleH
+// the Shell-drawn title rows above the dialog's body; scroll the viewport row
+// offset applied. bar is the internal scrollbar's screen hitbox when one was
+// drawn.
+type frameGeometry struct {
+	contentX, contentY int
+	contentW, contentH int
+	titleH             int
+	scroll             int
+	bar                scrollbar.Hitbox
+	hasBar             bool
+	valid              bool
+}
+
+// translate maps the screen cell (x, y) into dialog content coordinates,
+// reporting false when it falls outside the visible content area.
+func (g frameGeometry) translate(x, y int) (int, int, bool) {
+	if !g.valid || x < g.contentX || x >= g.contentX+g.contentW ||
+		y < g.contentY || y >= g.contentY+g.contentH {
+		return 0, 0, false
+	}
+	return x - g.contentX, y - g.contentY + g.scroll - g.titleH, true
+}
+
+// geometry locates the content area of a framed box once placed on screen:
+// the overlay origin plus the Box style's left and top frame.
+func (s Shell) geometry(
+	box string,
+	screenW, screenH, contentW, contentH, titleH, scroll int,
+) frameGeometry {
+	originX, originY := overlay.Origin(box, screenW, screenH, overlay.Center)
+	b := s.cfg.Styles.Box
+	return frameGeometry{
+		contentX: originX + b.GetMarginLeft() + b.GetBorderLeftSize() + b.GetPaddingLeft(),
+		contentY: originY + b.GetMarginTop() + b.GetBorderTopSize() + b.GetPaddingTop(),
+		contentW: contentW,
+		contentH: contentH,
+		titleH:   titleH,
+		scroll:   scroll,
+		valid:    true,
+	}
+}
+
 // Frame renders d's title, body, and hints into a box, scrolls the composed
 // content when it exceeds the height cap, and composites it centered over
 // backdrop, which must already be screenW columns by screenH rows.
 func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
+	out, _ := s.frame(backdrop, d, screenW, screenH)
+	return out
+}
+
+// frame is Frame plus the placement geometry of this render, which the Stack
+// records to translate mouse coordinates and expose the scrollbar hitbox.
+func (s Shell) frame(backdrop string, d Dialog, screenW, screenH int) (string, frameGeometry) {
 	frameW := s.cfg.Styles.Box.GetHorizontalFrameSize()
 	frameH := s.cfg.Styles.Box.GetVerticalFrameSize()
 
@@ -121,7 +179,7 @@ func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
 	// fixed-measure form on a tiny terminal); boxing it anyway would wrap its
 	// borders into unreadable interleaved fragments, so show the notice instead.
 	if lg.Width(body) > maxInnerW {
-		return s.frameTooNarrow(backdrop, screenW, screenH, frameW)
+		return s.frameTooNarrow(backdrop, screenW, screenH, frameW), frameGeometry{}
 	}
 	inner := joinNonEmpty(title, body, hints)
 
@@ -133,17 +191,26 @@ func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
 	boxW := viewW + frameW
 	// lipgloss.Height counts \n-separated lines, matching RenderScrollable's own
 	// overflow test, so this predicts exactly when it will show a scrollbar.
-	if lg.Height(inner) > viewportH {
-		viewportW := max(1, maxInnerW-1)
-		// Re-wrap only when the body actually uses the surrendered column; a
+	scrolls := lg.Height(inner) > viewportH
+	if scrolls {
+		// The scrollbar costs scrollChrome columns - the bar itself plus the
+		// padding column RenderScrollable adds beside it - so the body
+		// surrenders both, or the bar wraps into a second row inside the box.
+		// Re-wrap only when the body actually uses the surrendered columns; a
 		// narrower body renders byte-identical, so the second Content call
 		// would be pure waste.
+		viewportW := max(1, maxInnerW-scrollChrome)
 		if lg.Width(body) > viewportW {
 			body = d.Content(viewportW)
 			inner = joinNonEmpty(title, body, hints)
 		}
 		viewW = min(lg.Width(inner), viewportW)
-		boxW = viewW + frameW + 1 // + the reserved scrollbar column
+		boxW = viewW + frameW + scrollChrome
+	}
+
+	titleH := 0
+	if title != "" {
+		titleH = lg.Height(title)
 	}
 
 	// A scroll-hinting dialog (a tall form) asks the viewport to follow its
@@ -152,15 +219,14 @@ func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
 	// offset - SetYOffset clamps against the viewport's current height and
 	// content, so priming first is what keeps a valid offset from collapsing to
 	// zero (RenderScrollable re-sets the same bounds, leaving the offset intact).
+	scroll := 0
 	if sh, ok := d.(ScrollHint); ok {
 		if top, height, ok := sh.ScrollTo(); ok {
-			if title != "" {
-				top += lg.Height(title)
-			}
 			s.viewport.SetWidth(max(1, viewW))
 			s.viewport.SetHeight(viewportH)
 			s.viewport.SetContent(inner)
-			s.viewport.SetYOffset(scrollOffset(top, height, viewportH))
+			s.viewport.SetYOffset(scrollOffset(top+titleH, height, viewportH))
+			scroll = s.viewport.YOffset()
 		}
 	}
 
@@ -174,7 +240,20 @@ func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
 		ScrollbarConfig: s.cfg.Scrollbar,
 		Styles:          prompt.Styles{Scrollbar: s.cfg.Styles.Scrollbar},
 	})
-	return overlay.Place(backdrop, scrollable, screenW, screenH, overlay.Center)
+	geo := s.geometry(
+		scrollable, screenW, screenH, viewW, min(lg.Height(inner), viewportH), titleH, scroll,
+	)
+	if scrolls {
+		geo.bar = scrollbar.Hitbox{
+			X:          geo.contentX + viewW,
+			Y:          geo.contentY,
+			Height:     viewportH,
+			TotalLines: lg.Height(inner),
+			Config:     s.cfg.Scrollbar,
+		}
+		geo.hasBar = true
+	}
+	return overlay.Place(backdrop, scrollable, screenW, screenH, overlay.Center), geo
 }
 
 // frameFootered frames a Footered dialog: the foot row is pinned at the bottom
@@ -188,7 +267,7 @@ func (s Shell) frameFootered(
 	d Dialog,
 	f Footered,
 	screenW, screenH, maxInnerW, viewportH, frameW int,
-) string {
+) (string, frameGeometry) {
 	footer := f.Footer()
 	// The body gets whatever height the foot row leaves; at least one row, so a
 	// tiny terminal still shows a sliver of body rather than none.
@@ -209,7 +288,7 @@ func (s Shell) frameFootered(
 	// Same guard as Frame: a body or foot row wider than the box cannot be
 	// boxed legibly, so the notice stands in until the terminal widens.
 	if lg.Width(body) > maxInnerW || lg.Width(footer) > maxInnerW {
-		return s.frameTooNarrow(backdrop, screenW, screenH, frameW)
+		return s.frameTooNarrow(backdrop, screenW, screenH, frameW), frameGeometry{}
 	}
 	inner := joinNonEmpty(title, body, hints)
 	viewW := min(lg.Width(inner), maxInnerW)
@@ -225,6 +304,12 @@ func (s Shell) frameFootered(
 		viewW = min(lg.Width(inner), vw)
 	}
 
+	titleH := 0
+	if title != "" {
+		titleH = lg.Height(title)
+	}
+
+	scroll := 0
 	bodyView := inner
 	if scrolls {
 		vp := s.viewport
@@ -232,6 +317,7 @@ func (s Shell) frameFootered(
 		vp.SetHeight(bodyH)
 		vp.SetContent(inner)
 		vp.SetYOffset(hintOffset(d, title, bodyH))
+		scroll = vp.YOffset()
 		bar := scrollbar.Model{
 			Config:     s.cfg.Scrollbar,
 			Height:     bodyH,
@@ -245,7 +331,18 @@ func (s Shell) frameFootered(
 	outer := lg.JoinVertical(lg.Left, bodyView, footer)
 	boxW := lg.Width(outer) + frameW
 	boxed := s.cfg.Styles.Box.Width(boxW).Render(outer)
-	return overlay.Place(backdrop, boxed, screenW, screenH, overlay.Center)
+	geo := s.geometry(boxed, screenW, screenH, viewW, min(lg.Height(inner), bodyH), titleH, scroll)
+	if scrolls {
+		geo.bar = scrollbar.Hitbox{
+			X:          geo.contentX + viewW,
+			Y:          geo.contentY,
+			Height:     bodyH,
+			TotalLines: lg.Height(inner),
+			Config:     s.cfg.Scrollbar,
+		}
+		geo.hasBar = true
+	}
+	return overlay.Place(backdrop, boxed, screenW, screenH, overlay.Center), geo
 }
 
 // hintOffset is the viewport offset a scroll-hinting dialog asks for: its
