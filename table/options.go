@@ -57,8 +57,7 @@ type HeaderRenderer func(name, header string, ctx *RenderContext) string
 type config struct {
 	reverse        bool
 	showIndex      bool
-	tty            bool // true when outputting to a terminal
-	termWidth      int  // terminal width for flex columns (0 = disabled)
+	termWidth      int // terminal width for flex columns (0 = disabled)
 	gridOpts       []GridOption
 	headerRenderer HeaderRenderer
 }
@@ -66,7 +65,7 @@ type config struct {
 // WithGridOptions sets grid options applied to every grid the renderer
 // builds, e.g. WithWidthMethod(xansi.GraphemeWidth) for grapheme-clustering
 // terminals. Options that the renderer manages itself (flex columns, max
-// width, TTY) are overridden by the renderer's own configuration.
+// width) are overridden by the renderer's own configuration.
 func WithGridOptions(opts ...GridOption) Option {
 	return func(c *config) { c.gridOpts = opts }
 }
@@ -76,9 +75,6 @@ func WithReverse(v bool) Option { return func(c *config) { c.reverse = v } }
 
 // WithShowIndex sets whether to show row indices.
 func WithShowIndex(v bool) Option { return func(c *config) { c.showIndex = v } }
-
-// WithTTY sets whether output is going to a terminal.
-func WithTTY(v bool) Option { return func(c *config) { c.tty = v } }
 
 // WithTermWidth sets the terminal width for flex columns.
 // When set, columns marked Flex=true are truncated so rows fit within this width.

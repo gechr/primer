@@ -28,12 +28,6 @@ func TestNewGridAppliesDefaultsAndOptions(t *testing.T) {
 	require.Equal(t, [][]string{{"a"}}, configured.Rows)
 }
 
-func TestVisibleWidthIgnoresANSI(t *testing.T) {
-	t.Parallel()
-
-	require.Equal(t, 2, table.VisibleWidth("\x1b[31mgo\x1b[0m"))
-}
-
 func TestAlignColumnsPaddingModes(t *testing.T) {
 	t.Parallel()
 
@@ -136,7 +130,7 @@ func TestAlignColumnsTruncatesFlexColumnsWithWidthMethod(t *testing.T) {
 	require.LessOrEqual(t, ansi.GraphemeWidth.StringWidth(aligned[0]), 8)
 }
 
-func TestAlignColumnsTruncatesFlexColumnsAndWrapsTTYSpaces(t *testing.T) {
+func TestAlignColumnsTruncatesFlexColumns(t *testing.T) {
 	t.Parallel()
 
 	grid := table.NewGrid([][]string{
@@ -145,13 +139,12 @@ func TestAlignColumnsTruncatesFlexColumnsAndWrapsTTYSpaces(t *testing.T) {
 	})
 	grid.FlexCols = []int{1}
 	grid.MaxWidth = 8
-	grid.TTY = true
 
 	aligned, widths := grid.AlignColumns()
 
 	require.Equal(t, []int{1, 5}, widths)
-	require.Equal(t, "1\x1b[8m  \x1b[28mabcd…", aligned[0])
-	require.Equal(t, 8, table.VisibleWidth(aligned[0]))
+	require.Equal(t, "1  abcd…", aligned[0])
+	require.Equal(t, 8, ansi.WcWidth.StringWidth(aligned[0]))
 	require.Equal(t, "abcd…", grid.Rows[0][1])
 	require.True(t, strings.HasPrefix(ansi.Strip(aligned[1]), "2"))
 }
@@ -168,7 +161,7 @@ func TestAlignColumnsShrinksMultipleFlexColumns(t *testing.T) {
 	aligned, widths := grid.AlignColumns()
 
 	require.Equal(t, []int{2, 3, 4, 3}, widths)
-	require.LessOrEqual(t, table.VisibleWidth(aligned[1]), 18)
+	require.LessOrEqual(t, ansi.WcWidth.StringWidth(aligned[1]), 18)
 	require.Equal(t, "ab…", ansi.Strip(grid.Rows[1][1]))
 	require.Equal(t, "wxyz", ansi.Strip(grid.Rows[1][2]))
 }

@@ -15,7 +15,6 @@ type Grid struct {
 	MaxWidth      int   // terminal width; flex columns shrink to fit (0 = disabled)
 	Padding       Padding
 	Rows          [][]string
-	TTY           bool         // when true, wrap spaces in SGR 8 to prevent tab optimization
 	WidthMethod   xansi.Method // width measurement; zero value is xansi.WcWidth
 }
 
@@ -75,7 +74,7 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 	}
 
 	// Format output with padding.
-	gap := spaces(g.ColumnPadding, g.TTY)
+	gap := spaces(g.ColumnPadding)
 	result := make([]string, len(g.Rows))
 	for i, row := range g.Rows {
 		var sb strings.Builder
@@ -89,18 +88,18 @@ func (g *Grid) AlignColumns() ([]string, []int) {
 			case PaddingLeft:
 				sb.WriteString(field)
 				if !lastCol {
-					sb.WriteString(spaces(pad, g.TTY))
+					sb.WriteString(spaces(pad))
 				}
 			case PaddingRight:
-				sb.WriteString(spaces(pad, g.TTY))
+				sb.WriteString(spaces(pad))
 				sb.WriteString(field)
 			case PaddingCenter:
 				left := pad / 2 //nolint:mnd // halve for centering
 				right := pad - left
-				sb.WriteString(spaces(left, g.TTY))
+				sb.WriteString(spaces(left))
 				sb.WriteString(field)
 				if !lastCol {
-					sb.WriteString(spaces(right, g.TTY))
+					sb.WriteString(spaces(right))
 				}
 			}
 		}
@@ -159,23 +158,12 @@ func totalGridWidth(colWidths []int, columnPadding int) int {
 	return total
 }
 
-// VisibleWidth computes the visible width of a string, ignoring ANSI escapes.
-func VisibleWidth(s string) int {
-	return xansi.WcWidth.StringWidth(s)
-}
-
-// spaces returns n space characters. When tty is true, the spaces are wrapped
-// in SGR 8 (conceal/hidden) to prevent bubbletea v2's hard-tab cursor
-// optimization from collapsing runs of plain spaces into tab characters.
-func spaces(n int, tty bool) string {
+// spaces returns n space characters.
+func spaces(n int) string {
 	if n <= 0 {
 		return ""
 	}
-	s := strings.Repeat(" ", n)
-	if tty {
-		return "\x1b[8m" + s + "\x1b[28m"
-	}
-	return s
+	return strings.Repeat(" ", n)
 }
 
 // truncateVisible truncates s to maxWidth visible columns as measured by

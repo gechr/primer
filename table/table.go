@@ -115,7 +115,6 @@ func (r *Renderer[T]) RenderHeaderOnly(sampleWidths []int) (string, []int) {
 	}
 	flexCols := collectFlexCols(r.columns, 0)
 	g := NewGrid([][]string{header, samples}, r.cfg.gridOpts...)
-	g.TTY = r.cfg.tty
 	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
 		g.FlexCols = flexCols
 		g.MaxWidth = r.cfg.termWidth
@@ -205,7 +204,6 @@ func (r *Renderer[T]) format(rows []Row[T]) RenderedTable[T] {
 	// Prepend header and align.
 	allRows := append([][]string{header}, grid...)
 	g := NewGrid(allRows, r.cfg.gridOpts...)
-	g.TTY = r.cfg.tty
 	if len(flexCols) > 0 && r.cfg.termWidth > 0 {
 		g.FlexCols = flexCols
 		g.MaxWidth = r.cfg.termWidth
