@@ -13,7 +13,11 @@ const (
 	CtrlB = ModCtrl + "b"
 	CtrlC = ModCtrl + "c"
 	CtrlD = ModCtrl + "d"
+	CtrlE = ModCtrl + "e"
 	CtrlF = ModCtrl + "f"
+	CtrlN = ModCtrl + "n"
+	CtrlP = ModCtrl + "p"
+	CtrlS = ModCtrl + "s"
 )
 
 const (
