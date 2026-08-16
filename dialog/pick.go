@@ -7,7 +7,7 @@ import (
 )
 
 // Pick is a filterable single-choice dialog: it wraps a searching list.Model,
-// letting the Shell frame and scroll a type-to-filter select list. Typing
+// letting the Frame lay out and scroll a type-to-filter select list. Typing
 // narrows the list and the arrows move the cursor - routed straight into the
 // list - while enter accepts the highlighted row (ResultSubmit) and esc
 // cancels (ResultClose), the two keys the list itself deliberately leaves to
@@ -25,7 +25,7 @@ type Pick struct {
 // first entry. Rows may carry styling; the filter matches their visible text.
 func NewPick(title string, rows []string) *Pick {
 	l := list.New(list.WithSearch())
-	// The Shell owns scrolling: give the list room for every row plus the
+	// The Frame owns scrolling: give the list room for every row plus the
 	// filter line and let the outer viewport do the windowing.
 	l.Scrollbar = false
 	l.SetSize(0, len(rows)+1)
@@ -38,15 +38,15 @@ func NewPick(title string, rows []string) *Pick {
 // once the Stack has popped the dialog with ResultSubmit.
 func (p *Pick) Selected() (int, bool) { return p.list.Selected() }
 
-// Title is the heading the Shell renders above the list.
+// Title is the heading the Frame renders above the list.
 func (p *Pick) Title() string { return p.title }
 
 // Content renders the list - filter line and matching rows - as the body. The
-// list does not wrap to a width, so the parameter is unused; the Shell frames
+// list does not wrap to a width, so the parameter is unused; the Frame lays out
 // and scrolls whatever it returns.
 func (p *Pick) Content(int) string { return p.list.View() }
 
-// Hints advertises the accept and cancel keys for the Shell's foot row.
+// Hints advertises the accept and cancel keys for the Frame's foot row.
 func (p *Pick) Hints() []key.Hint {
 	return []key.Hint{
 		{Key: "enter", Desc: "select"},

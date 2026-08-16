@@ -99,7 +99,7 @@ func TestConfirmButtonsClick(t *testing.T) {
 	t.Parallel()
 
 	open := func() (*dialog.Stack, *dialog.Confirm) {
-		s := dialog.New(borderedShell())
+		s := dialog.New(borderedFrame())
 		c := dialog.NewConfirmButtons("Proceed?", cancelOK()...)
 		s.Push(c)
 		s.View(backdrop(12), 40, 12)
@@ -141,7 +141,7 @@ func TestInfoClosesOnDecisionOrClick(t *testing.T) {
 	require.Equal(t, dialog.ResultNone, res)
 
 	// The 7x5 box centers at (16, 3): content (17, 4), OK on row 6 at 18-19.
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewInfo("saved", ok))
 	s.View(backdrop(12), 40, 12)
 	_, _, res = s.Update(leftClick(17, 6)) // centering pad, not the button

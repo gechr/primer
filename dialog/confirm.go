@@ -43,7 +43,7 @@ type ConfirmButton struct {
 // presses the focused button, each button's Keys press it directly, and a
 // mouse click (delivered as [ClickMsg]) presses the button it lands on. The
 // plain [NewConfirm] form keeps the key-only y/n contract and advertises it
-// in the Shell's hint row instead.
+// in the Frame's hint row instead.
 //
 // It carries pointer semantics: Update mutates and returns the same value, so
 // the caller reads Confirmed off the very pointer the Stack pops.
@@ -82,7 +82,7 @@ func (c *Confirm) Confirmed() bool { return c.confirmed }
 func (c *Confirm) Title() string { return "" }
 
 // Content renders the prompt, with the button row centered beneath it in
-// button mode. The Shell frames, centers, and wraps it, so Confirm is
+// button mode. The Frame frames, centers, and wraps it, so Confirm is
 // box-less and draws no border of its own.
 func (c *Confirm) Content(int) string {
 	if !c.buttons {
@@ -93,7 +93,7 @@ func (c *Confirm) Content(int) string {
 	return content
 }
 
-// Hints advertises the accept and decline keys for the Shell's foot row. In
+// Hints advertises the accept and decline keys for the Frame's foot row. In
 // button mode the buttons are the affordance and the foot row is omitted.
 func (c *Confirm) Hints() []key.Hint {
 	if c.buttons {

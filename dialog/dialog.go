@@ -1,10 +1,10 @@
 // Package dialog is a domain-free stack of modal overlays for a Bubble Tea
 // application. A Dialog contributes only its parts - a title, a body, and a
 // row of key hints - and stays ignorant of borders, centering, scrolling, and
-// screen size. A Shell supplies that chrome: it caps a dialog to a fraction of
+// screen size. A Frame supplies that chrome: it caps a dialog to a fraction of
 // the screen and to an absolute maximum, scrolls the body internally when it
 // overflows the cap, and centers the framed box over a backdrop. A Stack owns
-// the ordered dialogs (top is last) plus one Shell, routes every message to
+// the ordered dialogs (top is last) plus one Frame, routes every message to
 // the top dialog, and pops it when the dialog reports it is done - handing the
 // popped Dialog back so the caller can read a typed payload off it.
 package dialog
@@ -33,31 +33,31 @@ const (
 )
 
 // Dialog is one overlay's content, free of any chrome. Implementations render
-// their body into the width the Shell allots and never draw their own border,
-// title bar, or scrollbar - the Shell owns all of that. The interface is
+// their body into the width the Frame allots and never draw their own border,
+// title bar, or scrollbar - the Frame owns all of that. The interface is
 // deliberately minimal: async and busy state belong to the concrete dialog and
 // its own messages, not to this contract.
 type Dialog interface {
-	// Title is the heading the Shell renders above the body; "" omits it.
+	// Title is the heading the Frame renders above the body; "" omits it.
 	Title() string
 	// Update routes a message into the dialog. It returns the (possibly
 	// updated) dialog so value-typed implementations compose cleanly, a command
 	// to run, and the Result telling the Stack whether to keep or pop it.
 	Update(msg tea.Msg) (Dialog, tea.Cmd, Result)
 	// Content renders the body - and only the body - to fit within width
-	// columns. The Shell frames, scrolls, and centers whatever it returns.
+	// columns. The Frame frames, scrolls, and centers whatever it returns.
 	Content(width int) string
-	// Hints are the key bindings the Shell renders as the dialog's foot row.
+	// Hints are the key bindings the Frame renders as the dialog's foot row.
 	Hints() []key.Hint
 }
 
 // ClickMsg is a left mouse click translated into the top dialog's content
 // space: X is the column and Y the row within the body the dialog rendered
-// through Content, already adjusted for the Shell's frame, title, and scroll
+// through Content, already adjusted for the Frame's frame, title, and scroll
 // offset. The Stack delivers it through Update in place of the raw
 // screen-space click whenever the click lands inside the framed content;
-// clicks on the Shell's chrome or outside the box keep arriving as
-// tea.MouseClickMsg. A click on a Shell-drawn title row arrives with a
+// clicks on the Frame's chrome or outside the box keep arriving as
+// tea.MouseClickMsg. A click on a Frame-drawn title row arrives with a
 // negative Y, so a dialog checks its own layout before acting.
 type ClickMsg struct {
 	X, Y int
@@ -78,7 +78,7 @@ func DismissResult(msg tea.Msg) Result {
 
 // Footered is an optional Dialog capability. A dialog that wants a row pinned
 // below its scrollable body - a form's hint/confirm/submitting row that must
-// stay visible however the body scrolls - returns that row here. The Shell
+// stay visible however the body scrolls - returns that row here. The Frame
 // scrolls only Content and always renders Footer beneath the viewport (inside
 // the same box). A dialog that does not implement this frames through Content
 // alone, as before. Pairs with [ScrollHint], whose region is measured against
@@ -88,10 +88,10 @@ type Footered interface {
 }
 
 // ScrollHint is an optional Dialog capability. A dialog whose body can grow
-// taller than the Shell's height cap reports the body region it wants kept on
-// screen - a form's focused field, say - so the Shell scrolls to follow it as
+// taller than the Frame's height cap reports the body region it wants kept on
+// screen - a form's focused field, say - so the Frame scrolls to follow it as
 // focus moves rather than stranding the cursor below the fold. top is the
-// region's first body line (0-based, excluding any Shell-drawn title); height
+// region's first body line (0-based, excluding any Frame-drawn title); height
 // is its line span. A dialog that does not implement this, or returns ok false,
 // leaves the viewport at the top (the default before this seam existed).
 type ScrollHint interface {
@@ -101,9 +101,9 @@ type ScrollHint interface {
 // SelfFramed is an optional Dialog capability. A dialog that draws its own
 // complete frame - border, title, and sizing - reports true, and the Stack
 // places its Content verbatim over the backdrop instead of framing and
-// scrolling it through the Shell (which would clip and interleave a pre-drawn
+// scrolling it through the Frame (which would clip and interleave a pre-drawn
 // box). A dialog that does not implement this, or returns false, gets the
-// Shell's chrome as usual.
+// Frame's chrome as usual.
 type SelfFramed interface {
 	SelfFramed() bool
 }

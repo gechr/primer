@@ -14,14 +14,14 @@ func leftClick(x, y int) tea.MouseClickMsg {
 	return tea.MouseClickMsg{X: x, Y: y, Button: tea.MouseLeft}
 }
 
-// The borderedShell boxes "PAYLOAD" (7 columns, 1 row) into a 9x3 box, which
+// The borderedFrame boxes "PAYLOAD" (7 columns, 1 row) into a 9x3 box, which
 // centers on a 40x12 screen at column 15, row 4; the content cell inside the
 // border is (16, 5).
 func TestClickTranslatesIntoContentSpace(t *testing.T) {
 	t.Parallel()
 
 	var seen []tea.Msg
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(stubDialog{body: "PAYLOAD", seen: &seen})
 
 	// Before any render there is no geometry: the raw click passes through.
@@ -44,11 +44,11 @@ func TestClickTranslatesIntoContentSpace(t *testing.T) {
 	require.Equal(t, []tea.Msg{leftClick(15, 5), leftClick(0, 0), right}, seen)
 }
 
-func TestClickAccountsForShellTitle(t *testing.T) {
+func TestClickAccountsForFrameTitle(t *testing.T) {
 	t.Parallel()
 
 	var seen []tea.Msg
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(stubDialog{title: "T", body: "PAYLOAD", seen: &seen})
 	s.View(backdrop(12), 40, 12)
 
@@ -64,7 +64,7 @@ func TestClickTranslatesForSelfFramedDialog(t *testing.T) {
 	t.Parallel()
 
 	var seen []tea.Msg
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(selfFramedStub{stubDialog: stubDialog{body: "BOX", seen: &seen}, self: true})
 	s.View(backdrop(12), 40, 12)
 
@@ -76,7 +76,7 @@ func TestClickTranslatesForSelfFramedDialog(t *testing.T) {
 func TestScrollbarHitbox(t *testing.T) {
 	t.Parallel()
 
-	s := dialog.New(dialog.NewShell(dialog.ShellConfig{
+	s := dialog.New(dialog.NewFrame(dialog.FrameConfig{
 		Styles:    dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 		MaxHeight: 6,
 	}))
@@ -91,6 +91,8 @@ func TestScrollbarHitbox(t *testing.T) {
 	s.Push(stubDialog{body: strings.TrimSuffix(strings.Repeat("L\n", 10), "\n")})
 	_, ok = s.ScrollbarHitbox()
 	require.False(t, ok) // pushed but not yet rendered
+	require.False(t, s.SetScrollOffset(3))
+	require.False(t, s.ScrollBy(1))
 
 	s.View(backdrop(12), 40, 12)
 	hb, ok := s.ScrollbarHitbox()
@@ -99,6 +101,13 @@ func TestScrollbarHitbox(t *testing.T) {
 	require.Equal(t, 4, hb.Y)
 	require.Equal(t, 4, hb.Height)
 	require.Equal(t, 10, hb.TotalLines)
+	require.Zero(t, s.ScrollPercent())
+	require.True(t, s.SetScrollOffset(3))
+	s.View(backdrop(12), 40, 12)
+	require.Positive(t, s.ScrollPercent())
+	require.True(t, s.ScrollBy(20))
+	s.View(backdrop(12), 40, 12)
+	require.GreaterOrEqual(t, s.ScrollPercent(), 0.9)
 
 	// A short body needs no scrollbar.
 	s.Push(stubDialog{body: "SHORT"})

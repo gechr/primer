@@ -11,7 +11,7 @@ import (
 	"github.com/gechr/primer/scrollbar"
 )
 
-// Styles are the Shell's render styles, injected by the owner so the package
+// Styles are the Frame's render styles, injected by the owner so the package
 // stays theme-agnostic.
 type Styles struct {
 	// Box draws the border and padding around the whole dialog; inject the
@@ -28,8 +28,8 @@ type Styles struct {
 	Scrollbar scrollbar.Styles
 }
 
-// ShellConfig declares a Shell's chrome and sizing bounds.
-type ShellConfig struct {
+// FrameConfig declares a Frame's chrome and sizing bounds.
+type FrameConfig struct {
 	Styles Styles
 	// MaxWidth and MaxHeight cap the box's total size in columns and rows; 0
 	// disables the cap. They keep a long prefill or a tall body from bleeding
@@ -53,29 +53,30 @@ type ShellConfig struct {
 // the border.
 const scrollChrome = 2
 
-// Shell frames a dialog: it caps the box to a fraction of the screen and to an
+// Frame lays out a dialog: it caps the box to a fraction of the screen and to an
 // absolute maximum, scrolls an overflowing body internally, and centers the
 // result over a backdrop. It carries value semantics and is safe to copy - the
 // Stack holds one by value.
-type Shell struct {
-	cfg      ShellConfig
-	viewport viewport.Model
+type Frame struct {
+	cfg          FrameConfig
+	viewport     viewport.Model
+	manualScroll bool
 }
 
-// NewShell builds a Shell from cfg. It constructs the viewport once so
+// NewFrame builds a Frame from cfg. It constructs the viewport once so
 // RenderScrollable reuses its default key mappings and configuration.
-func NewShell(cfg ShellConfig) Shell {
-	return Shell{cfg: cfg, viewport: viewport.New()}
+func NewFrame(cfg FrameConfig) Frame {
+	return Frame{cfg: cfg, viewport: viewport.New()}
 }
 
 // clampWidth is the maximum total box width for a screen.
-func (s Shell) clampWidth(screenW int) int {
+func (s *Frame) clampWidth(screenW int) int {
 	return clampAxis(screenW, s.cfg.Margin, s.cfg.WidthFraction, s.cfg.MaxWidth)
 }
 
 // clampHeight is the maximum total box height for a screen; it is what lets
 // an oversized body scroll inside the box instead of overrunning the screen.
-func (s Shell) clampHeight(screenH int) int {
+func (s *Frame) clampHeight(screenH int) int {
 	return clampAxis(screenH, s.cfg.Margin, s.cfg.HeightFraction, s.cfg.MaxHeight)
 }
 
@@ -96,11 +97,11 @@ func clampAxis(screen, margin int, fraction float64, limit int) int {
 	return max(1, v)
 }
 
-// frameGeometry records where the Shell placed a dialog's content during the
+// frameGeometry records where the Frame placed a dialog's content during the
 // last render, so the Stack can translate screen-space mouse coordinates into
 // the content space the dialog laid out. contentX/contentY are the screen
 // cell of the content's top-left; contentW/contentH its visible size; titleH
-// the Shell-drawn title rows above the dialog's body; scroll the viewport row
+// the Frame-drawn title rows above the dialog's body; scroll the viewport row
 // offset applied. bar is the internal scrollbar's screen hitbox when one was
 // drawn.
 type frameGeometry struct {
@@ -125,7 +126,7 @@ func (g frameGeometry) translate(x, y int) (int, int, bool) {
 
 // geometry locates the content area of a framed box once placed on screen:
 // the overlay origin plus the Box style's left and top frame.
-func (s Shell) geometry(
+func (s *Frame) geometry(
 	box string,
 	screenW, screenH, contentW, contentH, titleH, scroll int,
 ) frameGeometry {
@@ -142,17 +143,17 @@ func (s Shell) geometry(
 	}
 }
 
-// Frame renders d's title, body, and hints into a box, scrolls the composed
+// Render draws d's title, body, and hints into a box, scrolls the composed
 // content when it exceeds the height cap, and composites it centered over
 // backdrop, which must already be screenW columns by screenH rows.
-func (s Shell) Frame(backdrop string, d Dialog, screenW, screenH int) string {
+func (s *Frame) Render(backdrop string, d Dialog, screenW, screenH int) string {
 	out, _ := s.frame(backdrop, d, screenW, screenH)
 	return out
 }
 
-// frame is Frame plus the placement geometry of this render, which the Stack
+// frame is Render plus the placement geometry of this render, which the Stack
 // records to translate mouse coordinates and expose the scrollbar hitbox.
-func (s Shell) frame(backdrop string, d Dialog, screenW, screenH int) (string, frameGeometry) {
+func (s *Frame) frame(backdrop string, d Dialog, screenW, screenH int) (string, frameGeometry) {
 	frameW := s.cfg.Styles.Box.GetHorizontalFrameSize()
 	frameH := s.cfg.Styles.Box.GetVerticalFrameSize()
 
@@ -215,19 +216,25 @@ func (s Shell) frame(backdrop string, d Dialog, screenW, screenH int) (string, f
 
 	// A scroll-hinting dialog (a tall form) asks the viewport to follow its
 	// focus. The hint's top is relative to the body, so offset it past the
-	// Shell-drawn title, then prime the viewport's bounds before setting the
+	// Frame-drawn title, then prime the viewport's bounds before setting the
 	// offset - SetYOffset clamps against the viewport's current height and
 	// content, so priming first is what keeps a valid offset from collapsing to
 	// zero (RenderScrollable re-sets the same bounds, leaving the offset intact).
 	scroll := 0
-	if sh, ok := d.(ScrollHint); ok {
+	if scrolls {
+		s.viewport.SetWidth(max(1, viewW))
+		s.viewport.SetHeight(viewportH)
+		s.viewport.SetContent(inner)
+	}
+	if sh, ok := d.(ScrollHint); ok && !s.manualScroll {
 		if top, height, ok := sh.ScrollTo(); ok {
-			s.viewport.SetWidth(max(1, viewW))
-			s.viewport.SetHeight(viewportH)
-			s.viewport.SetContent(inner)
 			s.viewport.SetYOffset(scrollOffset(top+titleH, height, viewportH))
-			scroll = s.viewport.YOffset()
 		}
+	}
+	if scrolls {
+		scroll = s.viewport.YOffset()
+	} else {
+		s.resetScroll()
 	}
 
 	scrollable := prompt.RenderScrollable(prompt.ScrollableModel{
@@ -262,7 +269,7 @@ func (s Shell) frame(backdrop string, d Dialog, screenW, screenH int) (string, f
 // composes the viewport and scrollbar directly rather than through
 // RenderScrollable, which owns its own box and could not host a pinned row
 // inside it.
-func (s Shell) frameFootered(
+func (s *Frame) frameFootered(
 	backdrop string,
 	d Dialog,
 	f Footered,
@@ -312,20 +319,23 @@ func (s Shell) frameFootered(
 	scroll := 0
 	bodyView := inner
 	if scrolls {
-		vp := s.viewport
-		vp.SetWidth(max(1, viewW))
-		vp.SetHeight(bodyH)
-		vp.SetContent(inner)
-		vp.SetYOffset(hintOffset(d, title, bodyH))
-		scroll = vp.YOffset()
+		s.viewport.SetWidth(max(1, viewW))
+		s.viewport.SetHeight(bodyH)
+		s.viewport.SetContent(inner)
+		if !s.manualScroll {
+			s.viewport.SetYOffset(hintOffset(d, title, bodyH))
+		}
+		scroll = s.viewport.YOffset()
 		bar := scrollbar.Model{
 			Config:     s.cfg.Scrollbar,
 			Height:     bodyH,
-			TotalLines: vp.TotalLineCount(),
-			Percent:    vp.ScrollPercent(),
+			TotalLines: s.viewport.TotalLineCount(),
+			Percent:    s.viewport.ScrollPercent(),
 			Styles:     s.cfg.Styles.Scrollbar,
 		}.Render()
-		bodyView = lg.JoinHorizontal(lg.Top, vp.View(), bar)
+		bodyView = lg.JoinHorizontal(lg.Top, s.viewport.View(), bar)
+	} else {
+		s.resetScroll()
 	}
 
 	outer := lg.JoinVertical(lg.Left, bodyView, footer)
@@ -345,10 +355,15 @@ func (s Shell) frameFootered(
 	return overlay.Place(backdrop, boxed, screenW, screenH, overlay.Center), geo
 }
 
+func (s *Frame) resetScroll() {
+	s.viewport.GotoTop()
+	s.manualScroll = false
+}
+
 // hintOffset is the viewport offset a scroll-hinting dialog asks for: its
 // hinted region scrolled into a window of viewH lines, or zero when the
 // dialog gives no hint. The hint is body-relative, so it is offset past the
-// Shell-drawn title first.
+// Frame-drawn title first.
 func hintOffset(d Dialog, title string, viewH int) int {
 	sh, ok := d.(ScrollHint)
 	if !ok {
@@ -368,7 +383,7 @@ func hintOffset(d Dialog, title string, viewH int) int {
 // the clamped box can hold. Only the rendering is replaced: the dialog stays
 // open and keyed, so esc still cancels it and widening the terminal restores
 // the real content on the next frame.
-func (s Shell) frameTooNarrow(backdrop string, screenW, screenH, frameW int) string {
+func (s *Frame) frameTooNarrow(backdrop string, screenW, screenH, frameW int) string {
 	notice := s.cfg.Styles.HintText.Render("terminal too narrow")
 	boxW := min(lg.Width(notice)+frameW, screenW)
 	boxed := s.cfg.Styles.Box.Width(boxW).Render(notice)
@@ -396,22 +411,22 @@ func scrollOffset(top, height, viewportH int) int {
 }
 
 // renderTitle styles the heading, or returns "" when the dialog has none.
-func (s Shell) renderTitle(title string) string {
+func (s *Frame) renderTitle(title string) string {
 	if title == "" {
 		return ""
 	}
 	return s.cfg.Styles.Title.Render(title)
 }
 
-// renderHints renders the foot row with the Shell's injected styles.
-func (s Shell) renderHints(hints []key.Hint) string {
+// renderHints renders the foot row with the Frame's injected styles.
+func (s *Frame) renderHints(hints []key.Hint) string {
 	return RenderHints(s.cfg.Styles.HintKey, s.cfg.Styles.HintText, hints)
 }
 
 // RenderHints renders a hint row through primer's inline key renderer, the
 // same "(y)es" styling the rest of a TUI uses; no hints means no row. Shared
 // so a Footered dialog pinning its own hint row renders it identically to the
-// Shell's.
+// Frame's.
 func RenderHints(keyStyle, textStyle lg.Style, hints []key.Hint) string {
 	if len(hints) == 0 {
 		return ""

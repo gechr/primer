@@ -20,7 +20,7 @@ const (
 	graceReopenExempt = 500 * time.Millisecond
 )
 
-// stubDialog is a minimal Dialog for driving the Stack and Shell without any
+// stubDialog is a minimal Dialog for driving the Stack and Frame without any
 // real dialog. seen is a pointer so the messages it records survive the value
 // copies the Stack makes when it stores each Update's returned dialog.
 type stubDialog struct {
@@ -55,8 +55,8 @@ type selfFramedStub struct {
 
 func (d selfFramedStub) SelfFramed() bool { return d.self }
 
-func borderedShell() dialog.Shell {
-	return dialog.NewShell(dialog.ShellConfig{
+func borderedFrame() dialog.Frame {
+	return dialog.NewFrame(dialog.FrameConfig{
 		Styles: dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 	})
 }
@@ -72,16 +72,16 @@ func shows(screen, needle string) int { return strings.Count(screen, needle) }
 func TestStackSelfFramed(t *testing.T) {
 	t.Parallel()
 
-	t.Run("plain dialog is framed by the shell", func(t *testing.T) {
+	t.Run("plain dialog is framed by the frame", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(borderedShell())
+		s := dialog.New(borderedFrame())
 		s.Push(stubDialog{body: "PAYLOAD"})
 		got := s.View(backdrop(12), 40, 12)
 		require.True(
 			t,
 			strings.ContainsAny(got, "│─"),
-			"plain dialog should gain the shell's border:\n%s",
+			"plain dialog should gain the frame's border:\n%s",
 			got,
 		)
 	})
@@ -89,14 +89,14 @@ func TestStackSelfFramed(t *testing.T) {
 	t.Run("self-framed dialog is placed verbatim", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(borderedShell())
+		s := dialog.New(borderedFrame())
 		s.Push(selfFramedStub{stubDialog: stubDialog{body: "PAYLOAD"}, self: true})
 		got := s.View(backdrop(12), 40, 12)
 		require.Equal(t, 1, shows(got, "PAYLOAD"), "self-framed content missing:\n%s", got)
 		require.False(
 			t,
 			strings.ContainsAny(got, "│─"),
-			"self-framed dialog must not gain the shell's border:\n%s",
+			"self-framed dialog must not gain the frame's border:\n%s",
 			got,
 		)
 	})
@@ -104,7 +104,7 @@ func TestStackSelfFramed(t *testing.T) {
 
 // wrappingDialog is a Dialog whose Content honors the width it is given, hard-
 // wrapping its body to that column count exactly as a real body-rendering
-// dialog would. It is what makes an off-by-one in the width the Shell allots
+// dialog would. It is what makes an off-by-one in the width the Frame allots
 // observable: a body given one column too few wraps a character early.
 type wrappingDialog struct {
 	stubDialog
@@ -114,7 +114,7 @@ func (d wrappingDialog) Content(width int) string {
 	return lg.NewStyle().Width(width).Render(d.body)
 }
 
-func TestShellFrameWidth(t *testing.T) {
+func TestFrameFrameWidth(t *testing.T) {
 	t.Parallel()
 
 	t.Run("a body that fits the inner width is not wrapped a column early", func(t *testing.T) {
@@ -122,8 +122,8 @@ func TestShellFrameWidth(t *testing.T) {
 
 		// MaxWidth 9 minus the border's two frame columns leaves an inner width
 		// of exactly 7 - the width of the payload - so the body fits only when
-		// the Shell does not steal a column for a scrollbar it will not draw.
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{
+		// the Frame does not steal a column for a scrollbar it will not draw.
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{
 			MaxWidth: 9,
 			Styles:   dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 		}))
@@ -145,7 +145,7 @@ func TestShellFrameWidth(t *testing.T) {
 		// MaxWidth 12 minus the border leaves a 10-column inner region; the
 		// scrollbar claims one, leaving exactly 7 for the payload. MaxHeight 5
 		// forces the five-line body to scroll so the scrollbar actually draws.
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{
 			MaxWidth:  12,
 			MaxHeight: 5,
 			Styles:    dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
@@ -172,21 +172,21 @@ func TestShellFrameWidth(t *testing.T) {
 	})
 }
 
-func TestShellTooNarrowShowsNoticeNotGarbage(t *testing.T) {
+func TestFrameTooNarrowShowsNoticeNotGarbage(t *testing.T) {
 	t.Parallel()
 
-	shell := dialog.NewShell(dialog.ShellConfig{
+	frame := dialog.NewFrame(dialog.FrameConfig{
 		MaxWidth: 20,
 		Styles:   dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 	})
 	// A width-blind body wider than the 18-column inner width: boxing it would
-	// interleave wrapped borders, so the Shell must swap in the notice.
+	// interleave wrapped borders, so the Frame must swap in the notice.
 	wide := strings.Repeat("X", 60)
 
 	t.Run("plain frame", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(shell)
+		s := dialog.New(frame)
 		s.Push(stubDialog{body: wide})
 		got := s.View(backdrop(12), 40, 12)
 		require.Equal(
@@ -202,7 +202,7 @@ func TestShellTooNarrowShowsNoticeNotGarbage(t *testing.T) {
 	t.Run("footered frame", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(shell)
+		s := dialog.New(frame)
 		s.Push(footeredStub{
 			scrollHintStub: scrollHintStub{stubDialog: stubDialog{body: wide}},
 			footer:         "hints",
@@ -226,7 +226,7 @@ func TestShellTooNarrowShowsNoticeNotGarbage(t *testing.T) {
 	t.Run("fitting body still renders", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(shell)
+		s := dialog.New(frame)
 		s.Push(stubDialog{body: "PAYLOAD"})
 		got := s.View(backdrop(12), 40, 12)
 		require.Equal(t, 1, shows(got, "PAYLOAD"), "fitting body was refused:\n%s", got)
@@ -240,7 +240,7 @@ func TestStack(t *testing.T) {
 	t.Run("empty stack is inert", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 		require.False(t, s.Active())
 		require.Nil(t, s.Top())
 		cmd, popped, res := s.Update(keyMsg{})
@@ -252,7 +252,7 @@ func TestStack(t *testing.T) {
 	t.Run("push and top", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 		s.Push(stubDialog{id: "a"})
 		s.Push(stubDialog{id: "b"})
 		require.True(t, s.Active())
@@ -265,7 +265,7 @@ func TestStack(t *testing.T) {
 		t.Parallel()
 
 		var bottomSeen, topSeen []tea.Msg
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 		s.Push(stubDialog{id: "bottom", seen: &bottomSeen})
 		s.Push(stubDialog{id: "top", seen: &topSeen})
 
@@ -286,7 +286,7 @@ func TestStack(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+			s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 			s.Push(stubDialog{id: "under"})
 			s.Push(stubDialog{id: "done", result: tc.result})
 
@@ -306,7 +306,7 @@ func TestStack(t *testing.T) {
 	t.Run("ResultNone keeps the dialog and returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 		s.Push(stubDialog{id: "stay", result: dialog.ResultNone})
 
 		_, popped, res := s.Update(keyMsg{})
@@ -324,7 +324,7 @@ func (c *fakeClock) now() time.Time          { return c.t }
 func (c *fakeClock) advance(d time.Duration) { c.t = c.t.Add(d) }
 
 func newGraceStack() (*dialog.Stack, *fakeClock) {
-	s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+	s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 	c := &fakeClock{t: time.Unix(1000, 0)}
 	s.SetClock(c.now)
 	return s, c
@@ -492,7 +492,7 @@ func TestStackInputGrace(t *testing.T) {
 	})
 }
 
-// scrollHintStub is a stubDialog that reports a scroll region, so the Shell's
+// scrollHintStub is a stubDialog that reports a scroll region, so the Frame's
 // focus-follows scrolling is observable: its ScrollTo names the body line to
 // keep visible.
 type scrollHintStub struct {
@@ -503,18 +503,18 @@ type scrollHintStub struct {
 
 func (d scrollHintStub) ScrollTo() (int, int, bool) { return d.top, d.height, true }
 
-func TestShellFollowsFocus(t *testing.T) {
+func TestFrameFollowsFocus(t *testing.T) {
 	t.Parallel()
 
 	// A 30-line body in a viewport far shorter than it: without a scroll hint the
-	// Shell shows the top lines only. The hint points near the bottom, so the
-	// Shell must scroll that line into view.
+	// Frame shows the top lines only. The hint points near the bottom, so the
+	// Frame must scroll that line into view.
 	lines := make([]string, 30)
 	for i := range lines {
 		lines[i] = fmt.Sprintf("L%02d", i)
 	}
 	body := strings.Join(lines, "\n")
-	shell := dialog.NewShell(dialog.ShellConfig{
+	frame := dialog.NewFrame(dialog.FrameConfig{
 		MaxHeight: 12,
 		Styles:    dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 	})
@@ -522,7 +522,7 @@ func TestShellFollowsFocus(t *testing.T) {
 	t.Run("no hint anchors at the top", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(shell)
+		s := dialog.New(frame)
 		s.Push(stubDialog{body: body})
 		got := s.View(backdrop(40), 40, 40)
 		require.Equal(t, 1, shows(got, "L00"), "top of an unscrolled body should show:\n%s", got)
@@ -537,7 +537,7 @@ func TestShellFollowsFocus(t *testing.T) {
 	t.Run("a hint scrolls the region into view", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(shell)
+		s := dialog.New(frame)
 		s.Push(scrollHintStub{stubDialog: stubDialog{body: body}, top: 27, height: 1})
 		got := s.View(backdrop(40), 40, 40)
 		require.Equal(t, 1, shows(got, "L27"), "hinted line should scroll into view:\n%s", got)
@@ -551,7 +551,7 @@ func TestShellFollowsFocus(t *testing.T) {
 }
 
 // footeredStub scrolls its body (via the embedded scroll hint) and pins a
-// footer, so the Shell's footer-pinning is observable: the footer must show
+// footer, so the Frame's footer-pinning is observable: the footer must show
 // even when the body has scrolled its own top off.
 type footeredStub struct {
 	scrollHintStub
@@ -561,19 +561,19 @@ type footeredStub struct {
 
 func (d footeredStub) Footer() string { return d.footer }
 
-func TestShellPinsFooterWhileBodyScrolls(t *testing.T) {
+func TestFramePinsFooterWhileBodyScrolls(t *testing.T) {
 	t.Parallel()
 
 	lines := make([]string, 30)
 	for i := range lines {
 		lines[i] = fmt.Sprintf("L%02d", i)
 	}
-	shell := dialog.NewShell(dialog.ShellConfig{
+	frame := dialog.NewFrame(dialog.FrameConfig{
 		MaxHeight: 12,
 		Styles:    dialog.Styles{Box: lg.NewStyle().Border(lg.NormalBorder())},
 	})
 
-	s := dialog.New(shell)
+	s := dialog.New(frame)
 	// Focus is on the last body line; the footer must still be pinned on screen.
 	s.Push(footeredStub{
 		scrollHintStub: scrollHintStub{
@@ -616,14 +616,14 @@ func TestStackView(t *testing.T) {
 	t.Run("inactive stack returns the backdrop unchanged", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{}))
 		require.Equal(t, dotted, s.View(dotted, 40, 12), "inactive View mutated the backdrop")
 	})
 
 	t.Run("active stack overlays the dialog body", func(t *testing.T) {
 		t.Parallel()
 
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{MaxWidth: 30, MaxHeight: 8}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{MaxWidth: 30, MaxHeight: 8}))
 		s.Push(stubDialog{id: "a", title: "hello", body: "the dialog body"})
 
 		got := s.View(dotted, 40, 12)
@@ -642,7 +642,7 @@ func TestStackView(t *testing.T) {
 			tall.WriteByte(byte('a' + i%26))
 			tall.WriteByte('\n')
 		}
-		s := dialog.New(dialog.NewShell(dialog.ShellConfig{MaxWidth: 30, MaxHeight: 8}))
+		s := dialog.New(dialog.NewFrame(dialog.FrameConfig{MaxWidth: 30, MaxHeight: 8}))
 		s.Push(stubDialog{id: "tall", body: tall.String()})
 
 		require.Equal(

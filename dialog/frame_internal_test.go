@@ -6,62 +6,64 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestShellClampWidth(t *testing.T) {
+func TestFrameClampWidth(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name   string
-		cfg    ShellConfig
+		cfg    FrameConfig
 		screen int
 		want   int
 	}{
-		{name: "no caps returns the screen", cfg: ShellConfig{}, screen: 100, want: 100},
-		{name: "margin is kept clear", cfg: ShellConfig{Margin: 6}, screen: 100, want: 94},
-		{name: "absolute max binds", cfg: ShellConfig{MaxWidth: 40}, screen: 100, want: 40},
-		{name: "fraction binds", cfg: ShellConfig{WidthFraction: 0.5}, screen: 100, want: 50},
+		{name: "no caps returns the screen", cfg: FrameConfig{}, screen: 100, want: 100},
+		{name: "margin is kept clear", cfg: FrameConfig{Margin: 6}, screen: 100, want: 94},
+		{name: "absolute max binds", cfg: FrameConfig{MaxWidth: 40}, screen: 100, want: 40},
+		{name: "fraction binds", cfg: FrameConfig{WidthFraction: 0.5}, screen: 100, want: 50},
 		{
 			name:   "smallest of all caps wins",
-			cfg:    ShellConfig{MaxWidth: 60, WidthFraction: 0.5, Margin: 6},
+			cfg:    FrameConfig{MaxWidth: 60, WidthFraction: 0.5, Margin: 6},
 			screen: 100,
 			want:   50,
 		},
-		{name: "floors at one column", cfg: ShellConfig{Margin: 200}, screen: 10, want: 1},
+		{name: "floors at one column", cfg: FrameConfig{Margin: 200}, screen: 10, want: 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			require.Equal(t, tc.want, NewShell(tc.cfg).clampWidth(tc.screen))
+			frame := NewFrame(tc.cfg)
+			require.Equal(t, tc.want, frame.clampWidth(tc.screen))
 		})
 	}
 }
 
-func TestShellClampHeight(t *testing.T) {
+func TestFrameClampHeight(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name   string
-		cfg    ShellConfig
+		cfg    FrameConfig
 		screen int
 		want   int
 	}{
-		{name: "no caps returns the screen", cfg: ShellConfig{}, screen: 50, want: 50},
-		{name: "margin is kept clear", cfg: ShellConfig{Margin: 4}, screen: 50, want: 46},
-		{name: "absolute max binds", cfg: ShellConfig{MaxHeight: 30}, screen: 50, want: 30},
-		{name: "fraction binds", cfg: ShellConfig{HeightFraction: 0.8}, screen: 50, want: 40},
+		{name: "no caps returns the screen", cfg: FrameConfig{}, screen: 50, want: 50},
+		{name: "margin is kept clear", cfg: FrameConfig{Margin: 4}, screen: 50, want: 46},
+		{name: "absolute max binds", cfg: FrameConfig{MaxHeight: 30}, screen: 50, want: 30},
+		{name: "fraction binds", cfg: FrameConfig{HeightFraction: 0.8}, screen: 50, want: 40},
 		{
 			name:   "smallest of all caps wins",
-			cfg:    ShellConfig{MaxHeight: 30, HeightFraction: 0.8, Margin: 4},
+			cfg:    FrameConfig{MaxHeight: 30, HeightFraction: 0.8, Margin: 4},
 			screen: 50,
 			want:   30,
 		},
-		{name: "floors at one row", cfg: ShellConfig{Margin: 100}, screen: 10, want: 1},
+		{name: "floors at one row", cfg: FrameConfig{Margin: 100}, screen: 10, want: 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			require.Equal(t, tc.want, NewShell(tc.cfg).clampHeight(tc.screen))
+			frame := NewFrame(tc.cfg)
+			require.Equal(t, tc.want, frame.clampHeight(tc.screen))
 		})
 	}
 }

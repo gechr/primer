@@ -8,7 +8,7 @@ import (
 
 // Form adapts a form.Model into a Dialog: the form's scrollable Body becomes
 // Content, its pinned Foot the Footer, and its FocusRegion the scroll hint,
-// so a tall form follows its focused field inside the Shell while the
+// so a tall form follows its focused field inside the Frame while the
 // hint/confirm/submitting row stays visible. EventSubmit resolves to
 // ResultSubmit and EventCancel to ResultClose - the owner reads the values
 // off the popped *Form through Model. Events that keep the form open but need
@@ -39,7 +39,7 @@ func NewForm(m form.Model, onEvent func(form.EventKind)) *Form {
 // SetError around an async write.
 func (f *Form) Model() *form.Model { return &f.model }
 
-// Title omits the Shell heading; the form renders its own title in its body.
+// Title omits the Frame heading; the form renders its own title in its body.
 func (f *Form) Title() string { return "" }
 
 // Content is the form's scrollable body; the form is fixed-measure (its
@@ -52,7 +52,7 @@ func (f *Form) Footer() string { return f.model.Foot() }
 // Hints are omitted; the form's Foot carries its own bindings.
 func (f *Form) Hints() []key.Hint { return nil }
 
-// ScrollTo reports the focused field's region so the Shell follows it.
+// ScrollTo reports the focused field's region so the Frame follows it.
 func (f *Form) ScrollTo() (int, int, bool) { return f.model.FocusRegion() }
 
 // Update routes a message into the form and maps its event onto the dialog

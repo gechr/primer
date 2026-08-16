@@ -24,11 +24,11 @@ const (
 )
 
 // Stack owns an ordered set of modal dialogs - the top is the last element,
-// the one the user interacts with - plus the Shell that frames them. Only the
+// the one the user interacts with - plus the Frame that renders them. Only the
 // top dialog is live; the rest wait beneath it and are redrawn only when they
 // return to the top. The zero value is unusable; construct with New.
 type Stack struct {
-	shell   Shell
+	frame   Frame
 	dialogs []Dialog
 	// gracedType records, per stacked dialog, the concrete type it was
 	// PushWithGrace'd as (nil for a plain push). Only a popped graced dialog
@@ -61,9 +61,9 @@ type Stack struct {
 	geo frameGeometry
 }
 
-// New returns an empty Stack that frames its dialogs with shell.
-func New(shell Shell) *Stack {
-	return &Stack{shell: shell, now: time.Now}
+// New returns an empty Stack that frames its dialogs with frame.
+func New(frame Frame) *Stack {
+	return &Stack{frame: frame, now: time.Now}
 }
 
 // Push opens d as the new top dialog. A push is user-driven, so it also ends
@@ -73,6 +73,7 @@ func (s *Stack) Push(d Dialog) {
 	s.gracedType = append(s.gracedType, nil)
 	s.graceActive = false
 	s.geo = frameGeometry{}
+	s.frame.resetScroll()
 }
 
 // PushWithGrace opens d as the new top dialog behind a brief input grace, for
@@ -94,11 +95,11 @@ func (s *Stack) PushWithGrace(d Dialog) {
 	s.graceLastKeyAt = n
 }
 
-// SetShell swaps the frame the Stack draws its dialogs with, letting the owner
+// SetFrame swaps the frame the Stack draws its dialogs with, letting the owner
 // refresh chrome styles (e.g. after a theme change) without dropping any open
 // dialog.
-func (s *Stack) SetShell(shell Shell) {
-	s.shell = shell
+func (s *Stack) SetFrame(frame Frame) {
+	s.frame = frame
 }
 
 // SetClock replaces the clock the input-grace windows are measured on - the
@@ -140,6 +141,9 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 			return nil, nil, ResultNone
 		}
 	}
+	if _, ok := msg.(tea.KeyPressMsg); ok {
+		s.frame.manualScroll = false
+	}
 	// A left click inside the framed content is translated into the dialog's
 	// own coordinate space and delivered as a ClickMsg; any other click (the
 	// chrome, outside the box, another button) routes through untranslated.
@@ -160,6 +164,7 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 		s.gracedType = s.gracedType[:top]
 		s.graceActive = false
 		s.geo = frameGeometry{}
+		s.frame.resetScroll()
 		return cmd, next, res
 	}
 	return cmd, nil, ResultNone
@@ -185,6 +190,7 @@ func (s *Stack) Pop() Dialog {
 	s.gracedType = s.gracedType[:top]
 	s.graceActive = false
 	s.geo = frameGeometry{}
+	s.frame.resetScroll()
 	return d
 }
 
@@ -196,6 +202,41 @@ func (s *Stack) ScrollbarHitbox() (scrollbar.Hitbox, bool) {
 	return s.geo.bar, s.geo.valid && s.geo.hasBar
 }
 
+// ScrollBy moves the top dialog's internal viewport by delta lines. It returns
+// false when the dialog has not rendered yet or does not overflow its frame.
+func (s *Stack) ScrollBy(delta int) bool {
+	if !s.geo.valid || !s.geo.hasBar || delta == 0 {
+		return false
+	}
+	if delta > 0 {
+		s.frame.viewport.ScrollDown(delta)
+	} else {
+		s.frame.viewport.ScrollUp(-delta)
+	}
+	s.frame.manualScroll = true
+	return true
+}
+
+// SetScrollOffset moves the top dialog's internal viewport to offset. It
+// returns false when the dialog has not rendered yet or does not overflow.
+func (s *Stack) SetScrollOffset(offset int) bool {
+	if !s.geo.valid || !s.geo.hasBar {
+		return false
+	}
+	s.frame.viewport.SetYOffset(offset)
+	s.frame.manualScroll = true
+	return true
+}
+
+// ScrollPercent reports the top dialog's internal scroll position. A dialog
+// without an active scrollbar reports zero.
+func (s *Stack) ScrollPercent() float64 {
+	if !s.geo.valid || !s.geo.hasBar {
+		return 0
+	}
+	return s.frame.viewport.ScrollPercent()
+}
+
 // View composites the top dialog over backdrop, which must already be screenW
 // columns by screenH rows. With no dialog open it returns backdrop unchanged.
 func (s *Stack) View(backdrop string, screenW, screenH int) string {
@@ -205,7 +246,7 @@ func (s *Stack) View(backdrop string, screenW, screenH int) string {
 	}
 	top := s.Top()
 	// A self-framed dialog draws its own border and sizing; place it verbatim
-	// rather than boxing and scrolling it through the Shell, which would clip
+	// rather than boxing and scrolling it through the Frame, which would clip
 	// and interleave the dialog's pre-drawn box. Its whole rendering is its
 	// content, so clicks translate against the placement origin alone.
 	if sf, ok := top.(SelfFramed); ok && sf.SelfFramed() {
@@ -221,6 +262,6 @@ func (s *Stack) View(backdrop string, screenW, screenH int) string {
 		return overlay.Place(backdrop, content, screenW, screenH, overlay.Center)
 	}
 	var out string
-	out, s.geo = s.shell.frame(backdrop, top, screenW, screenH)
+	out, s.geo = s.frame.frame(backdrop, top, screenW, screenH)
 	return out
 }

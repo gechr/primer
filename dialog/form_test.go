@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The adapter must plug into the Shell's pinned-footer and follow-focus
+// The adapter must plug into the Frame's pinned-footer and follow-focus
 // scrolling seams, not just the base Dialog contract.
 var (
 	_ dialog.Footered   = (*dialog.Form)(nil)
@@ -27,7 +27,7 @@ func commentForm() form.Model {
 func TestFormDialogSubmitPopsWithValues(t *testing.T) {
 	t.Parallel()
 
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(commentForm(), nil))
 	s.Update(tea.KeyPressMsg{Text: "hi"})
 	_, popped, res := s.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
@@ -41,7 +41,7 @@ func TestFormDialogSubmitPopsWithValues(t *testing.T) {
 func TestFormDialogCancelCloses(t *testing.T) {
 	t.Parallel()
 
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(commentForm(), nil))
 	_, _, res := s.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	require.Equal(t, dialog.ResultClose, res)
@@ -57,7 +57,7 @@ func TestFormDialogEditorEventKeepsOpen(t *testing.T) {
 		EditorHatch: true,
 		Width:       30,
 	})
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(m, func(ev form.EventKind) { events = append(events, ev) }))
 	_, _, res := s.Update(tea.KeyPressMsg{Code: 'e', Mod: tea.ModCtrl})
 	require.Equal(t, dialog.ResultNone, res)
@@ -71,7 +71,7 @@ func TestFormDialogHoldOnSubmit(t *testing.T) {
 	var events []form.EventKind
 	d := dialog.NewForm(commentForm(), func(ev form.EventKind) { events = append(events, ev) })
 	d.HoldOnSubmit = true
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(d)
 	s.Update(tea.KeyPressMsg{Text: "hi"})
 	_, _, res := s.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
@@ -89,7 +89,7 @@ func TestFormDialogHoldOnSubmit(t *testing.T) {
 func TestFormDialogRendersBodyAndPinnedFoot(t *testing.T) {
 	t.Parallel()
 
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(commentForm(), nil))
 	got := s.View(backdrop(20), 60, 20)
 	require.Equal(t, 1, shows(got, "add comment"))
@@ -100,7 +100,7 @@ func TestFormDialogRendersBodyAndPinnedFoot(t *testing.T) {
 func TestFormDialogSwallowsClicks(t *testing.T) {
 	t.Parallel()
 
-	s := dialog.New(borderedShell())
+	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(commentForm(), nil))
 	s.Update(tea.KeyPressMsg{Text: "draft"})
 	s.View(backdrop(20), 60, 20)

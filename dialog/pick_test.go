@@ -24,10 +24,10 @@ func TestPick(t *testing.T) {
 		require.Equal(t, "alpha\nbeta\ngamma", ansi.Strip(p.Content(40)))
 	})
 
-	t.Run("the shell renders the title", func(t *testing.T) {
+	t.Run("the frame renders the title", func(t *testing.T) {
 		t.Parallel()
 
-		// The list draws no title of its own, so Pick hands it to the Shell's
+		// The list draws no title of its own, so Pick hands it to the Frame's
 		// heading instead.
 		require.Equal(t, "choose one", dialog.NewPick("choose one", pickRows()).Title())
 	})
