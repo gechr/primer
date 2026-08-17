@@ -85,6 +85,23 @@ func TestConfirmButtonsDefaultFocusFallsBackToFirst(t *testing.T) {
 	require.Equal(t, dialog.ResultClose, pressConfirm(c, tea.KeyPressMsg{Code: tea.KeyEnter}))
 }
 
+func TestDefaultDestructiveConfirmButtons(t *testing.T) {
+	t.Parallel()
+
+	buttons := dialog.DefaultDestructiveConfirmButtons()
+	require.Len(t, buttons, 2)
+	require.Equal(t, "No", buttons[0].Label)
+	require.Equal(t, lg.Color("196"), buttons[0].Focused.GetBackground())
+	require.Equal(t, lg.Color("#000000"), buttons[0].Focused.GetForeground())
+	require.False(t, buttons[0].Accept)
+	require.True(t, buttons[0].Blurred.GetBold())
+	require.Equal(t, "Yes", buttons[1].Label)
+	require.Equal(t, lg.Color("48"), buttons[1].Focused.GetBackground())
+	require.Equal(t, lg.Color("#000000"), buttons[1].Focused.GetForeground())
+	require.True(t, buttons[1].Accept)
+	require.True(t, buttons[1].Default)
+}
+
 func TestConfirmButtonsHideHintRow(t *testing.T) {
 	t.Parallel()
 

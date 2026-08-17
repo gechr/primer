@@ -25,8 +25,8 @@ const (
 
 // Stack owns an ordered set of modal dialogs - the top is the last element,
 // the one the user interacts with - plus the Frame that renders them. Only the
-// top dialog is live; the rest wait beneath it and are redrawn only when they
-// return to the top. The zero value is unusable; construct with New.
+// top dialog is live; lower dialogs remain visible underneath it. The zero
+// value is unusable; construct with New.
 type Stack struct {
 	frame   Frame
 	dialogs []Dialog
@@ -155,17 +155,38 @@ func (s *Stack) Update(msg tea.Msg) (tea.Cmd, Dialog, Result) {
 	top := len(s.dialogs) - 1
 	next, cmd, res := s.dialogs[top].Update(msg)
 	s.dialogs[top] = next
-	if res == ResultSubmit || res == ResultClose {
-		s.dialogs = s.dialogs[:top]
-		if t := s.gracedType[top]; t != nil {
-			s.lastClosedType = t
-			s.lastClosedAt = s.now()
+	if terminalResult(res) {
+		return s.finish(next, cmd, res)
+	}
+	if owner, ok := next.(childDialogOwner); ok {
+		if child := owner.takeChild(); child != nil {
+			s.Push(child)
 		}
-		s.gracedType = s.gracedType[:top]
-		s.graceActive = false
-		s.geo = frameGeometry{}
-		s.frame.resetScroll()
-		return cmd, next, res
+	}
+	return cmd, nil, ResultNone
+}
+
+func terminalResult(result Result) bool {
+	return result == ResultSubmit || result == ResultClose
+}
+
+func (s *Stack) finish(child Dialog, cmd tea.Cmd, result Result) (tea.Cmd, Dialog, Result) {
+	s.Pop()
+	if !s.Active() {
+		return cmd, child, result
+	}
+	owner, ok := s.Top().(childDialogOwner)
+	if !ok {
+		return cmd, child, result
+	}
+	parent, parentResult, handled := owner.resolveChild(child, result)
+	if !handled {
+		return cmd, child, result
+	}
+	s.dialogs[len(s.dialogs)-1] = parent
+	if terminalResult(parentResult) {
+		s.Pop()
+		return cmd, parent, parentResult
 	}
 	return cmd, nil, ResultNone
 }
@@ -244,24 +265,46 @@ func (s *Stack) View(backdrop string, screenW, screenH int) string {
 		s.geo = frameGeometry{}
 		return backdrop
 	}
-	top := s.Top()
+	out := backdrop
+	for i, d := range s.dialogs {
+		if i == len(s.dialogs)-1 {
+			out, s.geo = s.render(out, d, screenW, screenH)
+			return out
+		}
+		// Lower dialogs are visual context only. Render them through a frame copy
+		// so their viewport cannot steal scroll or pointer state from the live top.
+		frame := s.frame
+		frame.resetScroll()
+		out, _ = renderWithFrame(&frame, out, d, screenW, screenH)
+	}
+	return out
+}
+
+func (s *Stack) render(backdrop string, d Dialog, screenW, screenH int) (string, frameGeometry) {
+	return renderWithFrame(&s.frame, backdrop, d, screenW, screenH)
+}
+
+func renderWithFrame(
+	frame *Frame,
+	backdrop string,
+	d Dialog,
+	screenW, screenH int,
+) (string, frameGeometry) {
 	// A self-framed dialog draws its own border and sizing; place it verbatim
 	// rather than boxing and scrolling it through the Frame, which would clip
 	// and interleave the dialog's pre-drawn box. Its whole rendering is its
 	// content, so clicks translate against the placement origin alone.
-	if sf, ok := top.(SelfFramed); ok && sf.SelfFramed() {
-		content := top.Content(screenW)
+	if sf, ok := d.(SelfFramed); ok && sf.SelfFramed() {
+		content := d.Content(screenW)
 		x, y := overlay.Origin(content, screenW, screenH, overlay.Center)
-		s.geo = frameGeometry{
+		geo := frameGeometry{
 			contentX: x,
 			contentY: y,
 			contentW: lg.Width(content),
 			contentH: lg.Height(content),
 			valid:    true,
 		}
-		return overlay.Place(backdrop, content, screenW, screenH, overlay.Center)
+		return overlay.Place(backdrop, content, screenW, screenH, overlay.Center), geo
 	}
-	var out string
-	out, s.geo = s.frame.frame(backdrop, top, screenW, screenH)
-	return out
+	return frame.frame(backdrop, d, screenW, screenH)
 }

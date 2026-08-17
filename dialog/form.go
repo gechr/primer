@@ -2,6 +2,7 @@ package dialog
 
 import (
 	tea "charm.land/bubbletea/v2"
+	lg "charm.land/lipgloss/v2"
 	"github.com/gechr/primer/form"
 	"github.com/gechr/primer/key"
 )
@@ -15,8 +16,11 @@ import (
 // the owner to act - EventEditor, EventChanged, and EventSubmit under
 // HoldOnSubmit - are delivered through the OnEvent callback.
 type Form struct {
-	model   form.Model
-	onEvent func(form.EventKind)
+	model          form.Model
+	onEvent        func(form.EventKind)
+	discard        *Confirm
+	discardButtons []ConfirmButton
+	nerdFonts      bool
 
 	// HoldOnSubmit keeps the form open when it submits: instead of resolving
 	// ResultSubmit, the adapter reports EventSubmit through OnEvent and stays
@@ -25,13 +29,70 @@ type Form struct {
 	HoldOnSubmit bool
 }
 
+// FormOption configures a form dialog created by [NewForm].
+type FormOption func(*Form)
+
+// WithDiscardButtons replaces the default red No / green Yes buttons used by
+// the dirty-discard confirmation. An empty list leaves the defaults intact.
+func WithDiscardButtons(buttons ...ConfirmButton) FormOption {
+	return func(f *Form) {
+		if len(buttons) > 0 {
+			f.discardButtons = append([]ConfirmButton(nil), buttons...)
+		}
+	}
+}
+
+// WithNerdFonts renders form-owned buttons with Nerd Font half-circle caps.
+// Callers should enable it only after detecting that the terminal font
+// supports the glyphs.
+func WithNerdFonts() FormOption {
+	return func(f *Form) { f.nerdFonts = true }
+}
+
 // NewForm wraps m as a dialog. onEvent, when non-nil, observes the events
 // that need the owner to act while the form stays open: EventEditor (take
 // the draft to an external editor), EventChanged (a Notify cycle field
 // stepped - refetch dependent options through Model), and EventSubmit when
 // HoldOnSubmit is set.
-func NewForm(m form.Model, onEvent func(form.EventKind)) *Form {
-	return &Form{model: m, onEvent: onEvent}
+func NewForm(m form.Model, onEvent func(form.EventKind), opts ...FormOption) *Form {
+	f := &Form{
+		model:          m,
+		onEvent:        onEvent,
+		discardButtons: DefaultDestructiveConfirmButtons(),
+	}
+	for _, opt := range opts {
+		opt(f)
+	}
+	if f.nerdFonts {
+		f.discardButtons = nerdFontButtons(f.discardButtons)
+	}
+	return f
+}
+
+func nerdFontButtons(buttons []ConfirmButton) []ConfirmButton {
+	const (
+		pillLeft  = "\ue0b6" // nf-ple-left_half_circle_thick
+		pillRight = "\ue0b4" // nf-ple-right_half_circle_thick
+	)
+	out := append([]ConfirmButton(nil), buttons...)
+	for i := range out {
+		focused := out[i].Focused
+		focusedCaps := lg.NewStyle().Foreground(focused.GetBackground())
+		out[i].Focused = lg.NewStyle().Transform(func(label string) string {
+			return focusedCaps.Render(
+				pillLeft,
+			) + focused.Render(
+				label,
+			) + focusedCaps.Render(
+				pillRight,
+			)
+		})
+		blurred := out[i].Blurred
+		out[i].Blurred = lg.NewStyle().Transform(func(label string) string {
+			return " " + blurred.Render(label) + " "
+		})
+	}
+	return out
 }
 
 // Model returns the wrapped form, for reads and owner-driven mutations:
@@ -74,11 +135,34 @@ func (f *Form) Update(msg tea.Msg) (Dialog, tea.Cmd, Result) {
 		return f, cmd, ResultSubmit
 	case form.EventCancel:
 		return f, cmd, ResultClose
+	case form.EventConfirmDiscard:
+		f.discard = NewConfirmButtons(
+			"Discard your changes?\n\nYour input will be lost.",
+			f.discardButtons...,
+		)
 	case form.EventEditor, form.EventChanged:
 		f.notify(ev)
 	case form.EventNone:
 	}
 	return f, cmd, ResultNone
+}
+
+func (f *Form) takeChild() Dialog {
+	if f.discard == nil {
+		return nil
+	}
+	return f.discard
+}
+
+func (f *Form) resolveChild(child Dialog, result Result) (Dialog, Result, bool) {
+	if f.discard == nil || child != f.discard {
+		return f, ResultNone, false
+	}
+	f.discard = nil
+	if f.model.ResolveDiscard(result == ResultSubmit) == form.EventCancel {
+		return f, ResultClose, true
+	}
+	return f, ResultNone, true
 }
 
 func (f *Form) notify(ev form.EventKind) {

@@ -73,6 +73,41 @@ func NewConfirmButtons(prompt string, buttons ...ConfirmButton) *Confirm {
 	return &Confirm{prompt: prompt, row: row, meta: buttons, buttons: true}
 }
 
+// DefaultDestructiveConfirmButtons returns the standard reject/accept pair for
+// a destructive decision. The active reject uses a red background, the active
+// accept a green background, and accept holds the default focus.
+func DefaultDestructiveConfirmButtons() []ConfirmButton {
+	rejectColor := lg.Color("196")
+	acceptColor := lg.Color("48")
+	activeText := lg.Color("#000000")
+	rejectFocused := lg.NewStyle().
+		Background(rejectColor).Foreground(activeText).Bold(true).Padding(0, 1)
+	rejectBlurred := lg.NewStyle().Foreground(rejectColor).Bold(true).Padding(0, 1)
+	acceptFocused := lg.NewStyle().
+		Background(acceptColor).Foreground(activeText).Bold(true).Padding(0, 1)
+	acceptBlurred := lg.NewStyle().Foreground(acceptColor).Padding(0, 1)
+	return []ConfirmButton{
+		{
+			Button: button.Button{
+				Label:   "No",
+				Focused: rejectFocused,
+				Blurred: rejectBlurred,
+			},
+			Keys: []string{"n", "N"},
+		},
+		{
+			Button: button.Button{
+				Label:   "Yes",
+				Focused: acceptFocused,
+				Blurred: acceptBlurred,
+			},
+			Accept:  true,
+			Keys:    []string{"y", "Y"},
+			Default: true,
+		},
+	}
+}
+
 // Confirmed reports whether the dialog was accepted. It is meaningful once the
 // Stack has popped the dialog: a Confirm resolved with ResultSubmit reports
 // true, and one that was closed - or is still open - reports false.

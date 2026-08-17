@@ -26,8 +26,12 @@ type FieldSpec struct {
 	// Multiline makes the field a textarea (enter inserts a newline and
 	// ctrl+s submits) instead of a one-line input.
 	Multiline bool
-	// Rows is the textarea height; zero means 5.
+	// Rows is the textarea's initial and minimum height; zero means 3. The area
+	// grows as its content needs more rows.
 	Rows int
+	// AreaOptions customize the underlying multiline input. They are ignored
+	// unless Multiline is true.
+	AreaOptions []input.AreaOption
 	// Options, when non-empty, makes the field a cycle selector rather than a
 	// text input: it holds one of the listed values and ←/→ (or h/l) step
 	// through them. Its value is always one of Options, so a required cycle
@@ -79,6 +83,9 @@ type Config struct {
 	// EventEditor and the owner takes the draft to an external editor. The
 	// in-TUI field is always the default; the editor is the escape hatch.
 	EditorHatch bool
+	// ConfirmDiscard asks before abandoning edited fields when esc is pressed.
+	// The default is false, so esc cancels immediately.
+	ConfirmDiscard bool
 	// Width bounds every field's rendered width.
 	Width  int
 	Styles Styles
@@ -92,9 +99,12 @@ const (
 	EventNone EventKind = iota
 	// EventSubmit means every required field is filled; read Values.
 	EventSubmit
-	// EventCancel means the user backed out (esc on a pristine form, or a
-	// confirmed discard). The values are abandoned.
+	// EventCancel means the user backed out. The values are abandoned.
 	EventCancel
+	// EventConfirmDiscard means esc was pressed on an edited form whose
+	// ConfirmDiscard option is enabled. The owner should ask for confirmation,
+	// then call ResolveDiscard with the decision.
+	EventConfirmDiscard
 	// EventEditor asks the owner to continue the focused multiline field in
 	// the external editor, seeded with Values. The form stays open until the
 	// owner closes it, so a failed editor launch loses nothing.
@@ -114,6 +124,7 @@ type Model struct {
 	formErr        string         // form-level error (a submit the owner reports as failed)
 	focus          int
 	confirming     bool
+	confirmDiscard bool
 	editorHatch    bool
 	// submitting freezes the form while an async submit is in flight: the foot
 	// row shows submitFrame plus "submitting…" in place of the key hints. The
@@ -139,15 +150,16 @@ type field struct {
 func (f *field) isCycle() bool { return len(f.spec.Options) > 0 }
 
 // defaultRows is the textarea height when a multiline FieldSpec leaves Rows 0.
-const defaultRows = 5
+const defaultRows = 3
 
 // New builds a focused form: the first field owns the keyboard.
 func New(cfg Config) Model {
 	m := Model{
-		title:       cfg.Title,
-		editorHatch: cfg.EditorHatch,
-		width:       cfg.Width,
-		styles:      cfg.Styles,
+		title:          cfg.Title,
+		confirmDiscard: cfg.ConfirmDiscard,
+		editorHatch:    cfg.EditorHatch,
+		width:          cfg.Width,
+		styles:         cfg.Styles,
 	}
 	for i, spec := range cfg.Fields {
 		f := field{spec: spec}
@@ -171,7 +183,7 @@ func New(cfg Config) Model {
 			if rows == 0 {
 				rows = defaultRows
 			}
-			f.area = input.NewArea(spec.Placeholder, fw, rows)
+			f.area = input.NewArea(spec.Placeholder, fw, rows, spec.AreaOptions...)
 			f.area.SetValue(spec.Initial)
 			if i != 0 {
 				f.area.Blur()
@@ -308,12 +320,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Cmd, EventKind, bool) {
 	}
 	kp, isKey := msg.(tea.KeyPressMsg)
 	if m.confirming {
-		if !isKey {
-			// A paste (or any stray message) must not mutate the draft the
-			// confirmation is protecting; only y/n/esc move the state.
-			return nil, EventNone, true
-		}
-		return nil, m.updateConfirm(kp), true
+		// The owner is presenting the discard confirmation. Nothing may mutate
+		// the protected draft until it calls ResolveDiscard.
+		return nil, EventNone, true
 	}
 	if m.submitting {
 		// Frozen while an async submit is in flight: the owner clears the state
@@ -333,9 +342,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Cmd, EventKind, bool) {
 	}
 	switch kp.String() {
 	case key.Esc:
-		if m.dirty() {
+		if m.confirmDiscard && m.dirty() {
 			m.confirming = true
-			return nil, EventNone, true
+			return nil, EventConfirmDiscard, true
 		}
 		return nil, EventCancel, true
 	case key.CtrlS:
@@ -373,15 +382,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Cmd, EventKind, bool) {
 	return tea.Batch(cmd, m.syncAutocomplete()), EventNone, true
 }
 
-// updateConfirm drives the discard confirmation: y abandons the form, n (or
-// esc) resumes editing, anything else is swallowed so a stray key can never
-// drop the draft.
-func (m *Model) updateConfirm(kp tea.KeyPressMsg) EventKind {
-	switch kp.String() {
-	case "y", "Y":
+// ResolveDiscard completes a pending EventConfirmDiscard. Accepting abandons
+// the form; declining resumes editing with the draft intact.
+func (m *Model) ResolveDiscard(accept bool) EventKind {
+	if !m.confirming {
+		return EventNone
+	}
+	m.confirming = false
+	if accept {
 		return EventCancel
-	case "n", "N", key.Esc:
-		m.confirming = false
 	}
 	return EventNone
 }
@@ -592,12 +601,6 @@ func (m *Model) footRow() string {
 // Single-letter keys render inline in their description (key.Inline's "(n)ew"
 // style); multi-letter keys fall back to "key desc".
 func (m *Model) hintRow() string {
-	if m.confirming {
-		return m.styles.Question.Render("discard input?") + m.renderHints([]key.Hint{
-			{Key: "y", Desc: "yes"},
-			{Key: "n", Desc: "no"},
-		})
-	}
 	if m.ac.visible() {
 		return m.renderHints([]key.Hint{
 			{Key: key.ArrowsUpDown, Desc: "choose"},

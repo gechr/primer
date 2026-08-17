@@ -1,6 +1,7 @@
 package input_test
 
 import (
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -89,6 +90,43 @@ func TestAreaCollectsMultilineText(t *testing.T) {
 	a.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	typeText(t, a.Update, "second")
 	require.Equal(t, "first\nsecond", a.Value())
+}
+
+func TestAreaRendersWithoutGutter(t *testing.T) {
+	t.Parallel()
+
+	a := input.NewArea("hint", 40, 4)
+	view := a.View()
+	require.Zero(t, strings.Count(view, "┃"))
+	require.Zero(t, strings.Count(view, "│"))
+}
+
+func TestAreaCanRenderPromptAndLineNumbers(t *testing.T) {
+	t.Parallel()
+
+	a := input.NewArea(
+		"hint",
+		40,
+		4,
+		input.WithAreaPrompt("┃ "),
+		input.WithAreaLineNumbers(true),
+	)
+	view := a.View()
+	require.Equal(t, 4, strings.Count(view, "┃"))
+	require.Equal(t, 1, strings.Count(view, "1"))
+}
+
+func TestAreaStartsAtRequestedHeightAndExpands(t *testing.T) {
+	t.Parallel()
+
+	a := input.NewArea("", 40, 3)
+	require.Len(t, strings.Split(a.View(), "\n"), 3)
+	typeText(t, a.Update, "one")
+	for range 3 {
+		a.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+		typeText(t, a.Update, "next")
+	}
+	require.Len(t, strings.Split(a.View(), "\n"), 4)
 }
 
 func TestAreaBeforeCursorIsCurrentLine(t *testing.T) {

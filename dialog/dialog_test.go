@@ -633,6 +633,18 @@ func TestStackView(t *testing.T) {
 		require.Equal(t, 12, lg.Height(got), "framed view must match the screen height")
 	})
 
+	t.Run("stacked dialogs remain visible beneath the foreground", func(t *testing.T) {
+		t.Parallel()
+
+		s := dialog.New(borderedFrame())
+		s.Push(stubDialog{body: "UNDERLAY LEFT                 UNDERLAY RIGHT"})
+		s.Push(stubDialog{body: "FOREGROUND"})
+		got := s.View(backdrop(12), 60, 12)
+		require.Equal(t, 1, shows(got, "UNDERLAY LEFT"))
+		require.Equal(t, 1, shows(got, "UNDERLAY RIGHT"))
+		require.Equal(t, 1, shows(got, "FOREGROUND"))
+	})
+
 	t.Run("a body taller than the cap stays within the screen", func(t *testing.T) {
 		t.Parallel()
 

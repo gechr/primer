@@ -27,15 +27,13 @@ func typeText(t *testing.T, m *form.Model, s string) {
 func shows(view, needle string) int { return strings.Count(view, needle) }
 
 var (
-	esc     = tea.KeyPressMsg{Code: tea.KeyEscape}
-	enter   = tea.KeyPressMsg{Code: tea.KeyEnter}
-	tab     = tea.KeyPressMsg{Code: tea.KeyTab}
-	ctrlS   = tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl}
-	ctrlE   = tea.KeyPressMsg{Code: 'e', Mod: tea.ModCtrl}
-	keyDn   = tea.KeyPressMsg{Code: tea.KeyDown}
-	shTab   = tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
-	letterY = tea.KeyPressMsg{Text: "y", Code: 'y'}
-	letterN = tea.KeyPressMsg{Text: "n", Code: 'n'}
+	esc   = tea.KeyPressMsg{Code: tea.KeyEscape}
+	enter = tea.KeyPressMsg{Code: tea.KeyEnter}
+	tab   = tea.KeyPressMsg{Code: tea.KeyTab}
+	ctrlS = tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl}
+	ctrlE = tea.KeyPressMsg{Code: 'e', Mod: tea.ModCtrl}
+	keyDn = tea.KeyPressMsg{Code: tea.KeyDown}
+	shTab = tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
 )
 
 var (
@@ -174,8 +172,13 @@ func TestAcceptedDetailTracksAcceptanceAndClearsOnEdit(t *testing.T) {
 }
 
 func twoField() form.Model {
+	return newTwoField(false)
+}
+
+func newTwoField(confirmDiscard bool) form.Model {
 	return form.New(form.Config{
-		Title: "create item",
+		Title:          "create item",
+		ConfirmDiscard: confirmDiscard,
 		Fields: []form.FieldSpec{
 			{Label: "summary", Placeholder: "one line"},
 			{Label: "description", Multiline: true, Optional: true},
@@ -241,25 +244,32 @@ func TestEscOnPrefilledUntouchedFormCancels(t *testing.T) {
 	require.Equal(t, form.EventCancel, press(t, &m, esc))
 }
 
-func TestDirtyEscAsksBeforeDiscarding(t *testing.T) {
+func TestDirtyEscCancelsByDefault(t *testing.T) {
 	t.Parallel()
 
 	m := twoField()
 	typeText(t, &m, "half-written thought")
-	require.Equal(t, form.EventNone, press(t, &m, esc))
-	require.Equal(t, 1, shows(m.View(), "discard input?"))
-	// n resumes editing with the draft intact.
-	require.Equal(t, form.EventNone, press(t, &m, letterN))
+	require.Equal(t, form.EventCancel, press(t, &m, esc))
+}
+
+func TestDirtyEscAsksBeforeDiscarding(t *testing.T) {
+	t.Parallel()
+
+	m := newTwoField(true)
+	typeText(t, &m, "half-written thought")
+	require.Equal(t, form.EventConfirmDiscard, press(t, &m, esc))
+	// Declining resumes editing with the draft intact.
+	require.Equal(t, form.EventNone, m.ResolveDiscard(false))
 	require.Equal(t, "half-written thought", m.Value(0))
-	// A second esc re-asks; y abandons.
-	press(t, &m, esc)
-	require.Equal(t, form.EventCancel, press(t, &m, letterY))
+	// A second esc re-asks; accepting abandons.
+	require.Equal(t, form.EventConfirmDiscard, press(t, &m, esc))
+	require.Equal(t, form.EventCancel, m.ResolveDiscard(true))
 }
 
 func TestConfirmSwallowsStrayKeys(t *testing.T) {
 	t.Parallel()
 
-	m := twoField()
+	m := newTwoField(true)
 	typeText(t, &m, "draft")
 	press(t, &m, esc)
 	require.Equal(t, form.EventNone, press(t, &m, tea.KeyPressMsg{Text: "q", Code: 'q'}))

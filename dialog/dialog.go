@@ -107,3 +107,10 @@ type ScrollHint interface {
 type SelfFramed interface {
 	SelfFramed() bool
 }
+
+// childDialogOwner is implemented by dialogs that can temporarily put a
+// child dialog above themselves and consume its result when it closes.
+type childDialogOwner interface {
+	takeChild() Dialog
+	resolveChild(Dialog, Result) (Dialog, Result, bool)
+}

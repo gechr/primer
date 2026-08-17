@@ -22,6 +22,24 @@ func WithPlaceholder(s string) Option { return func(c *config) { c.placeholder =
 // WithWidth sets the width of the textarea.
 func WithWidth(w int) Option { return func(c *config) { c.width = w } }
 
+// AreaOption configures an [Area] created by [NewArea].
+type AreaOption func(*areaConfig)
+
+type areaConfig struct {
+	lineNumbers bool
+	prompt      string
+}
+
+// WithAreaLineNumbers controls whether the textarea renders line numbers.
+func WithAreaLineNumbers(show bool) AreaOption {
+	return func(c *areaConfig) { c.lineNumbers = show }
+}
+
+// WithAreaPrompt sets the prompt rendered at the start of every textarea row.
+func WithAreaPrompt(prompt string) AreaOption {
+	return func(c *areaConfig) { c.prompt = prompt }
+}
+
 // EditorOption configures an Editor created by [NewEditor].
 type EditorOption func(*editorConfig)
 

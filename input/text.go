@@ -102,10 +102,20 @@ type Area struct {
 	ta textarea.Model
 }
 
-// NewArea builds a focused multiline input sized for a modal.
-func NewArea(placeholder string, width, height int) Area {
+// NewArea builds a focused multiline input sized for a modal. Height is its
+// minimum; the area grows with its content. Line numbers and the row prompt are
+// hidden unless enabled with options.
+func NewArea(placeholder string, width, height int, opts ...AreaOption) Area {
+	cfg := areaConfig{}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
 	ta := textarea.New()
+	ta.Prompt = cfg.prompt
+	ta.ShowLineNumbers = cfg.lineNumbers
 	ta.Placeholder = placeholder
+	ta.DynamicHeight = true
+	ta.MinHeight = height
 	ta.SetWidth(width)
 	ta.SetHeight(height)
 	ta.Focus()

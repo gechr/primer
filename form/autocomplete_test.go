@@ -16,6 +16,7 @@ func sug(s string) form.Suggestion { return form.Suggestion{Value: s, Label: s} 
 // mentionForm is a one-area form completing @-mentions from a fixed set.
 func mentionForm(fetched *[]string) form.Model {
 	return form.New(form.Config{
+		ConfirmDiscard: true,
 		Fields: []form.FieldSpec{{
 			Multiline: true,
 			Autocomplete: &form.Autocomplete{
@@ -153,9 +154,8 @@ func TestEscDismissesListWithoutGuard(t *testing.T) {
 	require.Equal(t, form.EventNone, press(t, &m, esc))
 	// The list is gone but the draft survives.
 	require.Equal(t, 0, shows(m.View(), "alice"))
-	// The next esc reaches the form proper and asks about the dirty draft.
-	press(t, &m, esc)
-	require.Equal(t, 1, shows(m.View(), "discard input?"))
+	// The next esc reaches the form proper and asks the owner to confirm.
+	require.Equal(t, form.EventConfirmDiscard, press(t, &m, esc))
 }
 
 func TestStaleSuggestionsDrop(t *testing.T) {
@@ -256,7 +256,11 @@ func TestLineFieldMidTextAcceptance(t *testing.T) {
 func TestPasteDuringConfirmIsSwallowed(t *testing.T) {
 	t.Parallel()
 
-	m := form.New(form.Config{Fields: []form.FieldSpec{{}}, Width: 40})
+	m := form.New(form.Config{
+		ConfirmDiscard: true,
+		Fields:         []form.FieldSpec{{}},
+		Width:          40,
+	})
 	typeAndFetch(t, &m, "draft")
 	press(t, &m, esc) // dirty → confirming
 	_, ev, consumed := m.Update(tea.PasteMsg{Content: "clipboard noise"})
