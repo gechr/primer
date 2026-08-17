@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	lg "charm.land/lipgloss/v2"
+	xmath "github.com/gechr/x/math"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 	maxThumbDivisor = 2
 )
 
-// Config controls scrollbar rendering and geometry.
+// Config controls scrollbar rendering, geometry, and interaction.
 //
 // Zero-valued fields preserve the package defaults.
 type Config struct {
@@ -26,6 +27,9 @@ type Config struct {
 	// HideTrack renders blank cells outside the thumb while preserving the
 	// scrollbar's width.
 	HideTrack bool
+	// PageTrackClicks makes presses outside the thumb move one viewport instead
+	// of jumping to the pressed position and beginning a drag.
+	PageTrackClicks bool
 	// MaxThumbDivisor caps the thumb height to Height/MaxThumbDivisor.
 	// The default is 2. Set to 1 for a fully proportional thumb capped only
 	// by the track height.
@@ -110,10 +114,7 @@ func ThumbMetricsWithConfig(height, totalLines int, percent float64, cfg Config)
 	trackSpace := max(0, height-thumbSize)
 	thumbPos := 0
 	if trackSpace > 0 {
-		if math.IsNaN(percent) {
-			percent = 0
-		}
-		percent = min(max(percent, 0), 1)
+		percent = xmath.Clamp01(percent)
 		thumbPos = int(math.Round(percent * float64(trackSpace)))
 	}
 	return thumbPos, thumbSize
@@ -149,7 +150,7 @@ func ViewportThumbMetricsWithConfig(
 	if maxOffset == 0 {
 		return 0, thumbSize
 	}
-	offset = min(max(offset, 0), maxOffset)
+	offset = xmath.Clamp(offset, 0, maxOffset)
 	thumbPos := roundedRatio(offset*(trackHeight-thumbSize), maxOffset)
 	return thumbPos, thumbSize
 }
@@ -180,7 +181,7 @@ func (c Config) withDefaults() Config {
 func configuredThumbSize(height, proportionalSize int, cfg Config) int {
 	maxThumb := max(1, height/cfg.MaxThumbDivisor)
 	minThumb := min(cfg.MinThumbSize, maxThumb)
-	return min(maxThumb, max(minThumb, proportionalSize))
+	return xmath.Clamp(proportionalSize, minThumb, maxThumb)
 }
 
 func roundedRatio(numerator, denominator int) int {

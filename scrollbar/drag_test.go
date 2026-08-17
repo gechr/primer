@@ -126,6 +126,52 @@ func TestDragPressOnThumbPreservesGrabOffset(t *testing.T) {
 	require.InDelta(t, 15, offset, 8)
 }
 
+func TestDragPageTrackClicksMoveByViewport(t *testing.T) {
+	h := scrollbar.Hitbox{
+		X:          79,
+		Height:     10,
+		TotalLines: 40,
+		Config:     scrollbar.Config{PageTrackClicks: true},
+	}
+	var d scrollbar.Drag
+
+	down := d.Press(h, 9, 0.5)
+	require.Equal(t, 25, down)
+	require.False(t, d.Active)
+
+	up := d.Press(h, 0, 0.5)
+	require.Equal(t, 5, up)
+	require.False(t, d.Active)
+}
+
+func TestDragPageTrackClicksClampToContent(t *testing.T) {
+	h := scrollbar.Hitbox{
+		X:          79,
+		Height:     10,
+		TotalLines: 40,
+		Config:     scrollbar.Config{PageTrackClicks: true},
+	}
+	var d scrollbar.Drag
+
+	require.Zero(t, d.Press(h, 0, 0))
+	require.Equal(t, 30, d.Press(h, 9, 1))
+}
+
+func TestDragPageTrackClicksStillDragThumb(t *testing.T) {
+	h := scrollbar.Hitbox{
+		X:          79,
+		Height:     10,
+		TotalLines: 40,
+		Config:     scrollbar.Config{PageTrackClicks: true},
+	}
+	var d scrollbar.Drag
+
+	offset := d.Press(h, 4, 0.5)
+
+	require.Equal(t, 15, offset)
+	require.True(t, d.Active)
+}
+
 func TestDragContentFitsViewport(t *testing.T) {
 	h := scrollbar.Hitbox{X: 79, Y: 0, Height: 10, TotalLines: 5}
 	var d scrollbar.Drag

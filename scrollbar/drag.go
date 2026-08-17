@@ -1,6 +1,10 @@
 package scrollbar
 
-import "math"
+import (
+	"math"
+
+	xmath "github.com/gechr/x/math"
+)
 
 // Hitbox describes the screen region occupied by a vertical scrollbar.
 type Hitbox struct {
@@ -47,9 +51,10 @@ type Drag struct {
 	grab   int
 }
 
-// Press begins a drag at the given mouse position. It computes the grab
-// offset (preserving relative position if clicking on the thumb, centering
-// otherwise) and returns the viewport offset to scroll to.
+// Press handles a press at the given mouse position and returns the viewport
+// offset to scroll to. By default it begins a drag, preserving the grab offset
+// on the thumb and centering it otherwise. When PageTrackClicks is enabled, a
+// press outside the thumb moves one viewport without beginning a drag.
 //
 // The scrollPercent parameter is the viewport's current scroll position
 // (0.0 to 1.0), used to determine the thumb's current position.
@@ -57,7 +62,14 @@ func (d *Drag) Press(h Hitbox, mouseY int, scrollPercent float64) int {
 	const thumbCenterDivisor = 2
 
 	thumbPos, thumbSize := ThumbMetricsWithConfig(h.Height, h.TotalLines, scrollPercent, h.Config)
-	row := min(max(mouseY-h.Y, 0), h.Height-1)
+	row := -1
+	if h.Height > 0 {
+		row = xmath.Clamp(mouseY-h.Y, 0, h.Height-1)
+	}
+	if h.Config.PageTrackClicks && (row < thumbPos || row >= thumbPos+thumbSize) {
+		d.Release()
+		return pageOffset(h, row, thumbPos, scrollPercent)
+	}
 
 	grab := thumbSize / thumbCenterDivisor
 	if row >= thumbPos && row < thumbPos+thumbSize {
@@ -68,6 +80,15 @@ func (d *Drag) Press(h Hitbox, mouseY int, scrollPercent float64) int {
 	d.grab = grab
 
 	return scrollToRow(h, row, grab)
+}
+
+func pageOffset(h Hitbox, row, thumbPos int, scrollPercent float64) int {
+	maxOffset := max(0, h.TotalLines-h.Height)
+	currentOffset := int(math.Round(xmath.Clamp01(scrollPercent) * float64(maxOffset)))
+	if row < thumbPos {
+		return xmath.Clamp(currentOffset-h.Height, 0, maxOffset)
+	}
+	return xmath.Clamp(currentOffset+h.Height, 0, maxOffset)
 }
 
 // Motion updates the drag position and returns the new viewport offset.
@@ -98,7 +119,7 @@ func scrollToRow(h Hitbox, row, grab int) int {
 	// Thumb size is independent of scroll percent - pass 0.
 	_, thumbSize := ThumbMetricsWithConfig(h.Height, h.TotalLines, 0, h.Config)
 	trackSpace := max(0, h.Height-thumbSize)
-	topRow := min(max(row-grab, 0), trackSpace)
+	topRow := xmath.Clamp(row-grab, 0, trackSpace)
 
 	if trackSpace == 0 {
 		return maxOffset
