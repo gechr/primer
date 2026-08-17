@@ -23,10 +23,16 @@ type Config struct {
 	ThumbSymbol string
 	// TrackSymbol is the cell rendered for the scrollbar track.
 	TrackSymbol string
+	// HideTrack renders blank cells outside the thumb while preserving the
+	// scrollbar's width.
+	HideTrack bool
 	// MaxThumbDivisor caps the thumb height to Height/MaxThumbDivisor.
 	// The default is 2. Set to 1 for a fully proportional thumb capped only
 	// by the track height.
 	MaxThumbDivisor int
+	// MinThumbSize sets the minimum thumb height. The default is 1. Values
+	// larger than the configured maximum are clamped to that maximum.
+	MinThumbSize int
 }
 
 type Styles struct {
@@ -53,6 +59,10 @@ func (m Model) Chars() []string {
 	for i := range m.Height {
 		if i >= thumbPos && i < thumbPos+thumbSize {
 			chars[i] = m.Styles.Thumb.Render(cfg.ThumbSymbol)
+			continue
+		}
+		if cfg.HideTrack {
+			chars[i] = " "
 			continue
 		}
 		chars[i] = m.Styles.Track.Render(cfg.TrackSymbol)
@@ -96,13 +106,51 @@ func ThumbMetricsWithConfig(height, totalLines int, percent float64, cfg Config)
 		return 0, 0
 	}
 	cfg = cfg.withDefaults()
-	maxThumb := height / cfg.MaxThumbDivisor
-	thumbSize := min(maxThumb, max(1, height*height/max(1, totalLines)))
+	thumbSize := configuredThumbSize(height, height*height/max(1, totalLines), cfg)
 	trackSpace := max(0, height-thumbSize)
 	thumbPos := 0
 	if trackSpace > 0 {
+		if math.IsNaN(percent) {
+			percent = 0
+		}
+		percent = min(max(percent, 0), 1)
 		thumbPos = int(math.Round(percent * float64(trackSpace)))
 	}
+	return thumbPos, thumbSize
+}
+
+// ViewportThumbMetrics returns the thumb position and size for an explicit
+// viewport and scroll offset. The track height is independent of the number of
+// content lines visible in the viewport.
+func ViewportThumbMetrics(
+	trackHeight, totalLines, viewportLines, offset int,
+) (int, int) {
+	return ViewportThumbMetricsWithConfig(
+		trackHeight, totalLines, viewportLines, offset, Config{},
+	)
+}
+
+// ViewportThumbMetricsWithConfig returns the thumb position and size for an
+// explicit viewport and scroll offset using the supplied config.
+func ViewportThumbMetricsWithConfig(
+	trackHeight, totalLines, viewportLines, offset int,
+	cfg Config,
+) (int, int) {
+	if trackHeight <= 0 || totalLines <= 0 {
+		return 0, 0
+	}
+	cfg = cfg.withDefaults()
+	viewportLines = max(0, viewportLines)
+	visibleLines := min(viewportLines, totalLines)
+	proportionalSize := roundedRatio(visibleLines*trackHeight, totalLines)
+	thumbSize := configuredThumbSize(trackHeight, proportionalSize, cfg)
+
+	maxOffset := max(0, totalLines-viewportLines)
+	if maxOffset == 0 {
+		return 0, thumbSize
+	}
+	offset = min(max(offset, 0), maxOffset)
+	thumbPos := roundedRatio(offset*(trackHeight-thumbSize), maxOffset)
 	return thumbPos, thumbSize
 }
 
@@ -123,5 +171,21 @@ func (c Config) withDefaults() Config {
 	if c.MaxThumbDivisor <= 0 {
 		c.MaxThumbDivisor = maxThumbDivisor
 	}
+	if c.MinThumbSize <= 0 {
+		c.MinThumbSize = 1
+	}
 	return c
+}
+
+func configuredThumbSize(height, proportionalSize int, cfg Config) int {
+	maxThumb := max(1, height/cfg.MaxThumbDivisor)
+	minThumb := min(cfg.MinThumbSize, maxThumb)
+	return min(maxThumb, max(minThumb, proportionalSize))
+}
+
+func roundedRatio(numerator, denominator int) int {
+	if denominator <= 0 {
+		return 0
+	}
+	return (numerator + denominator/2) / denominator
 }

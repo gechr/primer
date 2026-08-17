@@ -55,6 +55,74 @@ func TestThumbMetricsWithConfigAllowsProportionalThumb(t *testing.T) {
 	require.Equal(t, 9, size)
 }
 
+func TestThumbMetricsWithConfigUsesMinimumThumbSize(t *testing.T) {
+	_, size := scrollbar.ThumbMetricsWithConfig(10, 1000, 0, scrollbar.Config{
+		MinThumbSize: 3,
+	})
+
+	require.Equal(t, 3, size)
+}
+
+func TestThumbMetricsWithConfigClampsMinimumToMaximum(t *testing.T) {
+	_, size := scrollbar.ThumbMetricsWithConfig(3, 1000, 0, scrollbar.Config{
+		MinThumbSize: 3,
+	})
+
+	require.Equal(t, 1, size)
+}
+
+func TestThumbMetricsAlwaysFitsTrack(t *testing.T) {
+	pos, size := scrollbar.ThumbMetrics(1, 100, 2)
+
+	require.Zero(t, pos)
+	require.Equal(t, 1, size)
+}
+
+func TestThumbMetricsClampsPercent(t *testing.T) {
+	top, _ := scrollbar.ThumbMetrics(10, 40, -1)
+	bottom, size := scrollbar.ThumbMetrics(10, 40, 2)
+
+	require.Zero(t, top)
+	require.Equal(t, 10-size, bottom)
+}
+
+func TestViewportThumbMetrics(t *testing.T) {
+	top, size := scrollbar.ViewportThumbMetrics(20, 100, 10, 0)
+	middle, middleSize := scrollbar.ViewportThumbMetrics(20, 100, 10, 45)
+	bottom, bottomSize := scrollbar.ViewportThumbMetrics(20, 100, 10, 90)
+
+	require.Equal(t, 2, size)
+	require.Equal(t, size, middleSize)
+	require.Equal(t, size, bottomSize)
+	require.Zero(t, top)
+	require.Equal(t, 9, middle)
+	require.Equal(t, 18, bottom)
+}
+
+func TestViewportThumbMetricsUsesIndependentTrackHeight(t *testing.T) {
+	pos, size := scrollbar.ViewportThumbMetricsWithConfig(5, 100, 20, 80, scrollbar.Config{
+		MaxThumbDivisor: 1,
+	})
+
+	require.Equal(t, 4, pos)
+	require.Equal(t, 1, size)
+}
+
+func TestViewportThumbMetricsClampsOffset(t *testing.T) {
+	top, _ := scrollbar.ViewportThumbMetrics(10, 100, 10, -10)
+	bottom, size := scrollbar.ViewportThumbMetrics(10, 100, 10, 1000)
+
+	require.Zero(t, top)
+	require.Equal(t, 10-size, bottom)
+}
+
+func TestViewportThumbMetricsEmptyContent(t *testing.T) {
+	pos, size := scrollbar.ViewportThumbMetrics(10, 0, 10, 0)
+
+	require.Zero(t, pos)
+	require.Zero(t, size)
+}
+
 func TestRender(t *testing.T) {
 	m := scrollbar.Model{
 		Height:     4,
@@ -88,4 +156,22 @@ func TestRenderUsesConfiguredSymbols(t *testing.T) {
 	}
 
 	require.Equal(t, "#\n.\n.", ansi.Strip(m.Render()))
+}
+
+func TestRenderCanHideTrack(t *testing.T) {
+	m := scrollbar.Model{
+		Height:     3,
+		TotalLines: 9,
+		Config: scrollbar.Config{
+			HideTrack:       true,
+			ThumbSymbol:     "#",
+			MaxThumbDivisor: 1,
+		},
+		Styles: scrollbar.Styles{
+			Thumb: lg.NewStyle(),
+			Track: lg.NewStyle(),
+		},
+	}
+
+	require.Equal(t, "#\n \n ", ansi.Strip(m.Render()))
 }
