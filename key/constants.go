@@ -40,7 +40,7 @@ const (
 )
 
 const (
-	ArrowsLeftRight   = "←→"
-	ArrowsUpDown      = "↑↓"
-	ShiftArrowsUpDown = ModShift + ArrowsUpDown
+	ArrowsLeftRight     = "←→"
+	ArrowsVertical      = "↕"
+	ShiftArrowsVertical = ModShift + ArrowsVertical
 )

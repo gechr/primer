@@ -34,7 +34,7 @@ func TestModelRenderReturnsHelpOnly(t *testing.T) {
 		},
 		Renderer: key.Renderer{
 			Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
-			Width:  24,
+			Width:  23,
 			Inline: true,
 		},
 	}

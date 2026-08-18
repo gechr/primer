@@ -38,3 +38,18 @@ func TestRenderLeavesOverlongLabelUnpadded(t *testing.T) {
 	got := ansi.Strip(pill.Render("a-very-long-label", "V", 4, pill.Styles{}))
 	require.Equal(t, "a-very-long-label‹ V ›", got)
 }
+
+func TestRenderChevronOverridesApplyOnlyAsAPair(t *testing.T) {
+	t.Parallel()
+
+	full := ansi.Strip(pill.Render("type", "Task", 10, pill.Styles{
+		Chevrons: pill.Chevrons{Left: "<", Right: ">"},
+	}))
+	require.Equal(t, "type      < Task >", full)
+
+	// A half-set pair falls back to the defaults rather than rendering lopsided.
+	half := ansi.Strip(pill.Render("type", "Task", 10, pill.Styles{
+		Chevrons: pill.Chevrons{Left: "<"},
+	}))
+	require.Equal(t, "type      ‹ Task ›", half)
+}

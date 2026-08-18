@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lg "charm.land/lipgloss/v2"
 	"github.com/gechr/primer/form"
+	"github.com/gechr/primer/pill"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,8 +46,9 @@ func TestFocusRegionTracksFocus(t *testing.T) {
 	t.Parallel()
 
 	// A titled three-field form: title (1 line) then one titled box per text
-	// field (3 lines: top border, body, bottom border). The region top must land
-	// on each box's top border as focus moves, matching View's own layout.
+	// field (3 lines: top border, body, bottom border), with a blank separator
+	// line before every box after the first. The region top must land on each
+	// block's first line as focus moves, matching View's own layout.
 	m := form.New(form.Config{
 		Title: "new item",
 		Fields: []form.FieldSpec{
@@ -68,11 +70,12 @@ func TestFocusRegionTracksFocus(t *testing.T) {
 
 	press(t, &m, tab) // focus the third field
 	top, _, _ = m.FocusRegion()
-	require.Equal(t, 7, top)
-	// The reported top must be a real line in View, and everything above it must
-	// be the two earlier blocks plus the title.
+	require.Equal(t, 8, top)
+	// The reported top must be a real line in View: the focused block opens on
+	// its blank separator line, with the box's titled border right below it.
 	lines := strings.Split(m.View(), "\n")
-	require.Equal(t, 1, shows(lines[top], "labels"))
+	require.Empty(t, lines[top])
+	require.Equal(t, 1, shows(lines[top+1], "labels"))
 }
 
 func TestFocusRegionInertForm(t *testing.T) {
@@ -81,6 +84,75 @@ func TestFocusRegionInertForm(t *testing.T) {
 	var m form.Model
 	_, _, ok := m.FocusRegion()
 	require.False(t, ok)
+}
+
+func TestArrowsMoveFocusOutsideTextareas(t *testing.T) {
+	t.Parallel()
+
+	// Down/up walk the ring (wrapping) from cycle and one-line fields; a
+	// focused textarea keeps the arrows for its cursor.
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{
+			{Label: "type", Options: []string{"Task", "Bug"}},
+			{Label: "summary"},
+			{Label: "notes", Multiline: true},
+		},
+		Width: 40,
+	})
+	keyUp := tea.KeyPressMsg{Code: tea.KeyUp}
+
+	top, _, _ := m.FocusRegion()
+	require.Equal(t, 0, top)
+	press(t, &m, keyDn) // cycle field -> summary
+	summaryTop, _, _ := m.FocusRegion()
+	require.Positive(t, summaryTop)
+	press(t, &m, keyDn) // summary -> notes textarea
+	notesTop, _, _ := m.FocusRegion()
+	require.Greater(t, notesTop, summaryTop)
+	press(t, &m, keyDn) // swallowed by the textarea; focus stays put
+	top, _, _ = m.FocusRegion()
+	require.Equal(t, notesTop, top)
+	press(t, &m, shTab) // back out to summary
+	press(t, &m, keyUp) // summary -> cycle field
+	top, _, _ = m.FocusRegion()
+	require.Equal(t, 0, top)
+	press(t, &m, keyUp) // wraps to the textarea
+	top, _, _ = m.FocusRegion()
+	require.Equal(t, notesTop, top)
+}
+
+func TestCycleRowsGroupWithBlankLineBeforeBox(t *testing.T) {
+	t.Parallel()
+
+	// Consecutive cycle rows stay compact; a box field is set off from them
+	// (and from other boxes) by one blank line.
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{
+			{Label: "provider", Options: []string{"a", "b"}},
+			{Label: "model", Options: []string{"x", "y"}},
+			{Label: "prompt"},
+		},
+		Width: 40,
+	})
+	lines := strings.Split(m.Body(), "\n")
+	require.Equal(t, 1, shows(lines[0], "provider"))
+	require.Equal(t, 1, shows(lines[1], "model"))
+	require.Empty(t, lines[2])
+	require.Equal(t, 1, shows(lines[3], "prompt"))
+}
+
+func TestCycleFieldRenderValueStylesDisplayOnly(t *testing.T) {
+	t.Parallel()
+
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{{
+			Options:     []string{"claude", "codex"},
+			RenderValue: func(v string) string { return "<" + v + ">" },
+		}},
+		Width: 40,
+	})
+	require.Equal(t, 1, shows(m.View(), "‹ <claude> ›"))
+	require.Equal(t, "claude", m.Value(0)) // the raw option, unstyled
 }
 
 func TestCycleFieldStepsAndWraps(t *testing.T) {
@@ -295,17 +367,26 @@ func TestHintsFollowShape(t *testing.T) {
 	single := form.New(form.Config{Fields: []form.FieldSpec{{}}, Width: 40})
 	v := single.View()
 	require.Equal(t, 1, shows(v, "submit"))
-	require.Equal(t, 0, shows(v, "next field"))
+	require.Equal(t, 0, shows(v, "next"))
+	require.Equal(t, 0, shows(v, "previous"))
 
 	multi := form.New(form.Config{
 		Fields:      []form.FieldSpec{{}, {Multiline: true}},
 		EditorHatch: true,
 		Width:       40,
 	})
+	// Focus on the one-line field: arrows are the advertised mover.
 	v = multi.View()
-	for _, want := range []string{"submit", "next field", "editor", "cancel"} {
+	for _, want := range []string{"submit", "navigate", "editor", "cancel"} {
 		require.Equal(t, 1, shows(v, want))
 	}
+	require.Equal(t, 0, shows(v, "next"))
+	// Focus in the textarea: arrows edit, so tab/shift+tab are advertised.
+	press(t, &multi, tab)
+	v = multi.View()
+	require.Equal(t, 1, shows(v, "next"))
+	require.Equal(t, 1, shows(v, "previous"))
+	require.Equal(t, 0, shows(v, "navigate"))
 }
 
 func TestValidateBlocksSubmitAndShowsInline(t *testing.T) {
@@ -391,4 +472,15 @@ func TestUpdateReportsConsumed(t *testing.T) {
 	m := twoField()
 	_, _, consumed := m.Update(tea.KeyPressMsg{Text: "x"})
 	require.True(t, consumed)
+}
+
+func TestFormChevronOverridesReachCycleRows(t *testing.T) {
+	t.Parallel()
+
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{{Options: []string{"Task"}}},
+		Width:  40,
+		Styles: form.Styles{Chevrons: pill.Chevrons{Left: "❰", Right: "❱"}},
+	})
+	require.Equal(t, 1, shows(m.View(), "❰ Task ❱"))
 }

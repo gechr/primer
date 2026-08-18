@@ -44,6 +44,10 @@ type FieldSpec struct {
 	// a field steps to a new value the form returns EventChanged, so the owner
 	// can refetch and push new Options back through SetOptions.
 	Notify bool
+	// RenderValue, when set on a cycle field, styles the displayed value
+	// between the chevrons - a provider name in its brand color, say. Display
+	// only: Value and Values still return the raw option.
+	RenderValue func(string) string
 	// Optional lets the field submit blank. A required field left blank
 	// blocks the submit and takes focus instead. An Optional field renders an
 	// "(optional)" marker on its label so the blank-is-fine contract is visible.
@@ -61,11 +65,14 @@ type FieldSpec struct {
 // Styles are the form's render styles, injected by the owner so the form
 // stays theme-agnostic.
 type Styles struct {
-	Title              lg.Style
-	Label              lg.Style
-	LabelFocused       lg.Style
-	Border             lg.Style // an unfocused field's box border and cycle chevrons
-	BorderFocused      lg.Style // the focused field's box border and cycle chevrons
+	Title         lg.Style
+	Label         lg.Style
+	LabelFocused  lg.Style
+	Border        lg.Style // an unfocused field's box border and cycle chevrons
+	BorderFocused lg.Style // the focused field's box border and cycle chevrons
+	// Chevrons overrides the cycle rows' marker glyphs (both together, or
+	// neither; the zero value keeps pill's default pair).
+	Chevrons           pill.Chevrons
 	HintKey            lg.Style
 	HintText           lg.Style
 	Question           lg.Style // the dirty-discard confirmation
@@ -355,6 +362,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Cmd, EventKind, bool) {
 	case key.ShiftTab:
 		m.moveFocus(-1)
 		return nil, EventNone, true
+	case key.Up, key.Down:
+		// Arrows walk the field ring like tab, except inside a textarea, where
+		// they move the cursor and tab remains the way out.
+		if !m.fields[m.focus].spec.Multiline {
+			delta := 1
+			if kp.String() == key.Up {
+				delta = -1
+			}
+			m.moveFocus(delta)
+			return nil, EventNone, true
+		}
 	case key.CtrlE:
 		if m.editorHatch && m.fields[m.focus].spec.Multiline {
 			return nil, EventEditor, true
@@ -510,8 +528,13 @@ const cycleLabelWidth = 11
 // View concatenates the blocks and FocusRegion measures them, so both share one
 // line accounting and can never drift; every block ends on a newline, so it
 // contributes exactly its newline count in lines to the joined view.
+// A blank line separates a block from its predecessor unless both are cycle
+// rows, which read as one compact group.
 func (m *Model) fieldBlock(i int) string {
 	var b strings.Builder
+	if i > 0 && (!m.fields[i].isCycle() || !m.fields[i-1].isCycle()) {
+		b.WriteString("\n")
+	}
 	if m.fields[i].isCycle() {
 		b.WriteString(m.cycleRow(i))
 	} else {
@@ -558,11 +581,15 @@ func (m *Model) boxField(i int) string {
 func (m *Model) cycleRow(i int) string {
 	f := &m.fields[i]
 	frame, label := m.frameStyles(i)
+	value := f.value()
+	if f.spec.RenderValue != nil {
+		value = f.spec.RenderValue(value)
+	}
 	return pill.Render(
 		f.spec.Label,
-		f.value(),
+		value,
 		cycleLabelWidth,
-		pill.Styles{Label: label, Chevron: frame},
+		pill.Styles{Label: label, Chevron: frame, Chevrons: m.styles.Chevrons},
 	)
 }
 
@@ -603,7 +630,7 @@ func (m *Model) footRow() string {
 func (m *Model) hintRow() string {
 	if m.ac.visible() {
 		return m.renderHints([]key.Hint{
-			{Key: key.ArrowsUpDown, Desc: "choose"},
+			{Key: key.ArrowsVertical, Desc: "choose"},
 			{Key: key.Enter, Desc: "insert"},
 			{Key: key.Esc, Desc: "dismiss"},
 		})
@@ -618,7 +645,16 @@ func (m *Model) hintRow() string {
 		hints = append(hints, key.Hint{Key: key.ArrowsLeftRight, Desc: "choose"})
 	}
 	if len(m.fields) > 1 {
-		hints = append(hints, key.Hint{Key: key.Tab, Desc: "next field"})
+		// Arrows walk the ring from any non-textarea field; inside a textarea
+		// they move the cursor, so tab is the way between fields there.
+		if m.fields[m.focus].spec.Multiline {
+			hints = append(hints,
+				key.Hint{Key: key.Tab, Desc: "next"},
+				key.Hint{Key: key.ShiftTab, Desc: "previous"},
+			)
+		} else {
+			hints = append(hints, key.Hint{Key: key.ArrowsVertical, Desc: "navigate"})
+		}
 	}
 	if m.editorHatch {
 		hints = append(hints, key.Hint{Key: key.CtrlE, Desc: "editor"})

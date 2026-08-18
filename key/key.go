@@ -33,7 +33,7 @@ func (r Renderer) Render(hints []Hint) string {
 	parts := make([]string, 0, len(hints))
 	gap := r.Gap
 	if gap == "" {
-		gap = "   "
+		gap = "  "
 	}
 
 	for _, hint := range hints {
