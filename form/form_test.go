@@ -484,3 +484,65 @@ func TestFormChevronOverridesReachCycleRows(t *testing.T) {
 	})
 	require.Equal(t, 1, shows(m.View(), "❰ Task ❱"))
 }
+
+func TestFocusAtFocusesAndPlacesCursor(t *testing.T) {
+	t.Parallel()
+
+	// Layout: cycle row (line 0), blank (1), summary box (2-4), blank (5),
+	// notes box (6+).
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{
+			{Label: "type", Options: []string{"Task", "Bug"}},
+			{Label: "summary"},
+			{Label: "notes", Multiline: true},
+		},
+		Width: 40,
+	})
+	typeText(t, &m, "x") // ignored: focus is on the cycle field
+	require.Equal(t, "Task", m.Value(0))
+
+	// A click on the summary box focuses it (and lands the cursor, a no-op
+	// while the field is empty).
+	require.True(t, m.FocusAt(5, 3))
+	top, _, _ := m.FocusRegion()
+	require.Equal(t, 1, top) // the summary block opens on its separator line
+	typeText(t, &m, "hello")
+	require.Equal(t, "hello", m.Value(1))
+
+	// A later click on the body row lands the cursor mid-word.
+	require.True(t, m.FocusAt(4, 3)) // column 4 - inset 2 = rune 2
+	typeText(t, &m, "-")
+	require.Equal(t, "he-llo", m.Value(1))
+
+	// One click on an unfocused text field focuses and lands the cursor in a
+	// single action: away to the notes box, then back onto summary at rune 6.
+	require.True(t, m.FocusAt(5, 7))
+	require.True(t, m.FocusAt(8, 3))
+	typeText(t, &m, "+")
+	require.Equal(t, "he-llo+", m.Value(1))
+
+	// Clicking the cycle row focuses it but never steps the value.
+	require.True(t, m.FocusAt(14, 0))
+	top, _, _ = m.FocusRegion()
+	require.Equal(t, 0, top)
+	require.Equal(t, "Task", m.Value(0))
+
+	// The title row and space beyond the last block miss.
+	require.False(t, m.FocusAt(0, 99))
+}
+
+func TestFocusAtPlacesMultilineCursorByRow(t *testing.T) {
+	t.Parallel()
+
+	m := form.New(form.Config{
+		Fields: []form.FieldSpec{{Label: "notes", Multiline: true}},
+		Width:  40,
+	})
+	m.SetValue(0, "alpha\nbravo\ncharlie")
+
+	// The sole field is already focused, so the click places the cursor:
+	// block row 2 is the textarea's second display row, column 5 - inset = 3.
+	require.True(t, m.FocusAt(5, 2))
+	typeText(t, &m, "!")
+	require.Equal(t, "alpha\nbra!vo\ncharlie", m.Value(0))
+}

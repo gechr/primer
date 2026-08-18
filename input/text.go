@@ -75,6 +75,10 @@ func (l *Line) ReplaceBeforeCursor(n int, s string) {
 	l.ti.SetCursor(at)
 }
 
+// SetCursorAt moves the cursor to col, clamped to the content - how a mouse
+// click lands in the field.
+func (l *Line) SetCursorAt(col int) { l.ti.SetCursor(max(0, col)) }
+
 // SetSuggestions enables ghost-text autocompletion over the given values:
 // typing a prefix shows the rest faint, and the textinput's accept binding
 // (tab / ctrl+e / right at end) completes it.
@@ -163,6 +167,25 @@ func (a *Area) ReplaceBeforeCursor(n int, s string) {
 	n = min(n, col)
 	rows[row] = string(line[:col-n]) + s + string(line[col:])
 	a.ta.SetValue(strings.Join(rows, "\n"))
+}
+
+// SetCursorAt moves the cursor to the given display row and column, clamped
+// to the content - how a mouse click lands in the textarea. Rows are walked
+// with CursorDown so soft-wrapped lines land where the eye sees them.
+func (a *Area) SetCursorAt(row, col int) {
+	a.ta.MoveToBegin()
+	for range max(0, row) {
+		a.ta.CursorDown()
+	}
+	// SetCursorColumn addresses the whole logical line, so on a soft-wrapped
+	// row the click lands relative to that row's own start column - clamped
+	// inside the row, or the cursor would spill onto the next one.
+	li := a.ta.LineInfo()
+	end := li.CharWidth
+	if li.RowOffset+1 < li.Height {
+		end = max(0, li.CharWidth-1)
+	}
+	a.ta.SetCursorColumn(li.StartColumn + min(max(0, col), end))
 }
 
 // Update routes a message into the textarea (enter inserts a newline).

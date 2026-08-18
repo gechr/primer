@@ -27,6 +27,11 @@ const borderCols = 2
 // the interior exactly without overrunning the frame.
 const Chrome = borderCols + 2*hPad
 
+// Inset is the columns between the box's left edge and its body - the left
+// border glyph plus the left padding - so a caller can map a click on the box
+// onto body coordinates.
+const Inset = 1 + hPad
+
 // Styles are the box's injected render styles, so the widget stays
 // theme-agnostic: a caller signals focus by handing it a brighter pair.
 type Styles struct {

@@ -147,3 +147,18 @@ func TestAreaReplaceBeforeCursorSwapsToken(t *testing.T) {
 	a.ReplaceBeforeCursor(len("@al"), "@alice")
 	require.Equal(t, "ping @alice", a.Value())
 }
+
+// A click on a soft-wrapped row must land in that row, not snap back to the
+// first visual row of the logical line.
+func TestAreaSetCursorAtLandsOnWrappedRow(t *testing.T) {
+	t.Parallel()
+
+	a := input.NewArea("", 20, 3)
+	a.SetValue(strings.Repeat("a", 50))
+
+	a.SetCursorAt(1, 2) // second visual row, 2 columns in
+	require.Greater(t, len(a.BeforeCursor()), 10)
+
+	a.SetCursorAt(0, 2) // back to the first visual row
+	require.Len(t, a.BeforeCursor(), 2)
+}

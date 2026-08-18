@@ -119,10 +119,14 @@ func (f *Form) ScrollTo() (int, int, bool) { return f.model.FocusRegion() }
 // Update routes a message into the form and maps its event onto the dialog
 // contract.
 func (f *Form) Update(msg tea.Msg) (Dialog, tea.Cmd, Result) {
-	// The form has no pointer affordances yet; swallowing clicks keeps them
-	// from reaching the form's catch-all message path, which would clear
-	// field errors and accepted-suggestion state as if the user had typed.
-	if _, ok := msg.(ClickMsg); ok {
+	// A click focuses the field under the pointer and, on a text field, places
+	// the cursor at the clicked spot. Handling it here also keeps the
+	// click out of the form's catch-all message path, which would clear field
+	// errors and accepted-suggestion state as if the user had typed.
+	if click, ok := msg.(ClickMsg); ok {
+		if click.Y >= 0 {
+			f.model.FocusAt(click.X, click.Y)
+		}
 		return f, nil, ResultNone
 	}
 	cmd, ev, _ := f.model.Update(msg)
