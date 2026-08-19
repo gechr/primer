@@ -10,4 +10,8 @@ type DiffOptions struct {
 	RepoURL string
 	// CommitSHA is the commit used for blob hyperlinks in delta output.
 	CommitSHA string
+	// Dark selects dark-background rendering: delta runs with --dark and the
+	// chroma fallback uses a dark style. The zero value renders for light
+	// backgrounds.
+	Dark bool
 }

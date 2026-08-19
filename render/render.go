@@ -64,9 +64,18 @@ func Markdown(text string, width int, style string) string {
 	return strings.TrimRight(rendered, "\n")
 }
 
-// Diff highlights a unified diff string using chroma syntax highlighting.
-// Returns the input unchanged if highlighting fails.
+// Diff highlights a unified diff string using chroma syntax highlighting
+// with a dark style. Returns the input unchanged if highlighting fails.
 func Diff(text string) string {
+	return diffChroma(text, true)
+}
+
+// DiffLight is [Diff] with a light-background chroma style.
+func DiffLight(text string) string {
+	return diffChroma(text, false)
+}
+
+func diffChroma(text string, dark bool) string {
 	if text == "" {
 		return ""
 	}
@@ -77,8 +86,12 @@ func Diff(text string) string {
 	}
 	lexer = chroma.Coalesce(lexer)
 
+	styleName := "monokailight"
+	if dark {
+		styleName = "monokai"
+	}
 	chromaStyleMu.Lock()
-	style := styles.Get("monokai")
+	style := styles.Get(styleName)
 	chromaStyleMu.Unlock()
 	formatter := formatters.TTY256
 
@@ -103,7 +116,7 @@ func DiffStyled(text string, opts DiffOptions) string {
 	if out, err := DiffWithDelta(text, opts); err == nil {
 		return out
 	}
-	return Diff(text)
+	return diffChroma(text, opts.Dark)
 }
 
 // DiffWithDelta renders a diff through delta. It returns an error when delta
@@ -123,6 +136,11 @@ func DiffWithDelta(text string, opts DiffOptions) (string, error) {
 	}
 
 	args := []string{"--true-color=always"}
+	if opts.Dark {
+		args = append(args, "--dark")
+	} else {
+		args = append(args, "--light")
+	}
 	if opts.RepoURL != "" && opts.CommitSHA != "" {
 		args = append(args,
 			"--hyperlinks",

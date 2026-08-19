@@ -178,6 +178,7 @@ cat
 	require.NoError(t, err)
 	assert.Equal(t, []string{
 		"--true-color=always",
+		"--light",
 		"--hyperlinks",
 		"--hyperlinks-file-link-format",
 		"https://github.com/owner/repo/blob/abc123{path}?plain=1#L{line}",
