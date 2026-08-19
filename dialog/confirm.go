@@ -88,19 +88,15 @@ func DefaultDestructiveConfirmButtons() []ConfirmButton {
 	acceptBlurred := lg.NewStyle().Foreground(acceptColor).Padding(0, 1)
 	return []ConfirmButton{
 		{
-			Button: button.Button{
-				Label:   "No",
-				Focused: rejectFocused,
-				Blurred: rejectBlurred,
-			},
-			Keys: []string{"n", "N"},
+			Label:   "No",
+			Focused: rejectFocused,
+			Blurred: rejectBlurred,
+			Keys:    []string{"n", "N"},
 		},
 		{
-			Button: button.Button{
-				Label:   "Yes",
-				Focused: acceptFocused,
-				Blurred: acceptBlurred,
-			},
+			Label:   "Yes",
+			Focused: acceptFocused,
+			Blurred: acceptBlurred,
 			Accept:  true,
 			Keys:    []string{"y", "Y"},
 			Default: true,

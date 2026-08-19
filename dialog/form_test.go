@@ -7,7 +7,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/gechr/primer/button"
 	"github.com/gechr/primer/dialog"
 	"github.com/gechr/primer/form"
 	"github.com/stretchr/testify/require"
@@ -100,14 +99,8 @@ func TestFormDialogDiscardButtonsAreOverrideable(t *testing.T) {
 	plain := lg.NewStyle()
 	s := dialog.New(borderedFrame())
 	s.Push(dialog.NewForm(m, nil, dialog.WithDiscardButtons(
-		dialog.ConfirmButton{
-			Button:  button.Button{Label: "Keep", Focused: plain, Blurred: plain},
-			Default: true,
-		},
-		dialog.ConfirmButton{
-			Button: button.Button{Label: "Discard", Focused: plain, Blurred: plain},
-			Accept: true,
-		},
+		dialog.ConfirmButton{Label: "Keep", Focused: plain, Blurred: plain, Default: true},
+		dialog.ConfirmButton{Label: "Discard", Focused: plain, Blurred: plain, Accept: true},
 	)))
 	s.Update(tea.KeyPressMsg{Text: "draft"})
 	s.Update(tea.KeyPressMsg{Code: tea.KeyEscape})

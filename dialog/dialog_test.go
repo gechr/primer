@@ -90,7 +90,7 @@ func TestStackSelfFramed(t *testing.T) {
 		t.Parallel()
 
 		s := dialog.New(borderedFrame())
-		s.Push(selfFramedStub{stubDialog: stubDialog{body: "PAYLOAD"}, self: true})
+		s.Push(selfFramedStub{body: "PAYLOAD", self: true})
 		got := s.View(backdrop(12), 40, 12)
 		require.Equal(t, 1, shows(got, "PAYLOAD"), "self-framed content missing:\n%s", got)
 		require.False(
@@ -203,10 +203,7 @@ func TestFrameTooNarrowShowsNoticeNotGarbage(t *testing.T) {
 		t.Parallel()
 
 		s := dialog.New(frame)
-		s.Push(footeredStub{
-			scrollHintStub: scrollHintStub{stubDialog: stubDialog{body: wide}},
-			footer:         "hints",
-		})
+		s.Push(footeredStub{body: wide, footer: "hints"})
 		got := s.View(backdrop(12), 40, 12)
 		require.Equal(
 			t,
@@ -422,7 +419,7 @@ func TestStackInputGrace(t *testing.T) {
 		closeGraced(s, c, stubDialog{result: dialog.ResultClose})
 
 		c.advance(100 * time.Millisecond)
-		s.PushWithGrace(selfFramedStub{stubDialog: stubDialog{seen: &seen}})
+		s.PushWithGrace(selfFramedStub{seen: &seen})
 		c.advance(10 * time.Millisecond)
 		s.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 		require.Empty(t, seen, "a different dialog kind rode the reopen exemption")
@@ -538,7 +535,7 @@ func TestFrameFollowsFocus(t *testing.T) {
 		t.Parallel()
 
 		s := dialog.New(frame)
-		s.Push(scrollHintStub{stubDialog: stubDialog{body: body}, top: 27, height: 1})
+		s.Push(scrollHintStub{body: body, top: 27, height: 1})
 		got := s.View(backdrop(40), 40, 40)
 		require.Equal(t, 1, shows(got, "L27"), "hinted line should scroll into view:\n%s", got)
 		require.Zero(
@@ -576,11 +573,9 @@ func TestFramePinsFooterWhileBodyScrolls(t *testing.T) {
 	s := dialog.New(frame)
 	// Focus is on the last body line; the footer must still be pinned on screen.
 	s.Push(footeredStub{
-		scrollHintStub: scrollHintStub{
-			stubDialog: stubDialog{body: strings.Join(lines, "\n")},
-			top:        29,
-			height:     1,
-		},
+		body:   strings.Join(lines, "\n"),
+		top:    29,
+		height: 1,
 		footer: "PINNED-FOOT",
 	})
 	got := s.View(backdrop(40), 40, 40)

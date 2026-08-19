@@ -65,7 +65,7 @@ func TestClickTranslatesForSelfFramedDialog(t *testing.T) {
 
 	var seen []tea.Msg
 	s := dialog.New(borderedFrame())
-	s.Push(selfFramedStub{stubDialog: stubDialog{body: "BOX", seen: &seen}, self: true})
+	s.Push(selfFramedStub{body: "BOX", seen: &seen, self: true})
 	s.View(backdrop(12), 40, 12)
 
 	// "BOX" (3x1) placed verbatim centers at (18, 5); no frame to skip.
