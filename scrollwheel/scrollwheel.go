@@ -70,6 +70,8 @@ func (c *Coalescer[T]) Filter(model tea.Model, msg tea.Msg) tea.Msg {
 	}
 
 	var delta int
+	// Only vertical wheel events coalesce; the rest pass through.
+	//exhaustive:ignore
 	switch wm.Button {
 	case tea.MouseWheelDown:
 		delta = 1
