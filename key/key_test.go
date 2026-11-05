@@ -7,6 +7,7 @@ import (
 	lg "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/gechr/primer/key"
+	"github.com/gechr/primer/layout"
 	"github.com/stretchr/testify/require"
 )
 
@@ -122,4 +123,26 @@ func TestRendererHintAtMissesOutsideHints(t *testing.T) {
 	i, ok := r.HintAt(hints, 12, 0)
 	require.True(t, ok)
 	require.Equal(t, 1, i)
+}
+
+func TestRendererHoverPaintsOnlyThatHint(t *testing.T) {
+	const bg = "\x1b[48;2;1;2;3m"
+	hints := []key.Hint{{Key: "a", Desc: "approve"}, {Key: "b", Desc: "back"}}
+	r := key.Renderer{Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()}, HoverBG: bg}
+	plain := r.Render(hints)
+
+	hover := 1
+	r.Hover = &hover
+	require.Equal(t, " a approve  "+layout.PreserveBackground("b back", bg), r.Render(hints))
+	i, ok := r.HintAt(hints, 12, 0)
+	require.True(t, ok)
+	require.Equal(t, 1, i, "hover leaves hit areas unchanged")
+
+	for _, out := range []int{-1, 2} {
+		hover = out
+		require.Equal(t, plain, r.Render(hints), "out-of-range hover paints nothing")
+	}
+	hover = 0
+	r.HoverBG = ""
+	require.Equal(t, plain, r.Render(hints), "no background, no paint")
 }

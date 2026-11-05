@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	lg "charm.land/lipgloss/v2"
+	"github.com/gechr/primer/layout"
 )
 
 const (
@@ -27,6 +28,11 @@ type Renderer struct {
 	Prefix *string
 	Width  int
 	Inline bool
+	// Hover, when set, paints the hint at that index with HoverBG (a raw SGR
+	// background escape), so a hovered clickable hint stands out. The
+	// background survives the hint's own styling and stops at its edge.
+	Hover   *int
+	HoverBG string
 }
 
 // hintSpan is where one rendered hint sits: columns [start, end) of line.
@@ -75,6 +81,9 @@ func (r Renderer) layout(hints []Hint) ([]string, []hintSpan) {
 			parts,
 			r.Styles.Key.Render(hint.Key)+" "+renderDesc(hint.Desc, r.Styles.Text),
 		)
+	}
+	if r.Hover != nil && *r.Hover >= 0 && *r.Hover < len(parts) && r.HoverBG != "" {
+		parts[*r.Hover] = layout.PreserveBackground(parts[*r.Hover], r.HoverBG)
 	}
 
 	prefix := " "
