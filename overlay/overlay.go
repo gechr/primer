@@ -32,18 +32,31 @@ func Place(background, foreground string, width, height int, placement Placement
 // math, so a caller translating mouse coordinates into overlay space can
 // never drift from where the overlay was actually drawn.
 func Origin(foreground string, width, height int, _ Placement) (int, int) {
-	fgLines := strings.Split(foreground, nl)
+	fgWidth, fgHeight := size(foreground)
+	startRow := max(0, (height-fgHeight)/centerDivisor)
+	startCol := max(0, (width-fgWidth)/centerDivisor)
+	return startCol, startRow
+}
 
+// Contains reports whether screen cell (x, y) falls inside the rectangle Place
+// covers with foreground, so a caller can stop clicks on the overlay from
+// reaching whatever it hides.
+func Contains(foreground string, width, height int, placement Placement, x, y int) bool {
+	startCol, startRow := Origin(foreground, width, height, placement)
+	fgWidth, fgHeight := size(foreground)
+	return x >= startCol && x < startCol+fgWidth && y >= startRow && y < startRow+fgHeight
+}
+
+// size returns foreground's width (its widest line) and height in cells.
+func size(foreground string) (int, int) {
+	fgLines := strings.Split(foreground, nl)
 	fgWidth := 0
 	for _, line := range fgLines {
 		if w := xansi.WcWidth.StringWidth(line); w > fgWidth {
 			fgWidth = w
 		}
 	}
-
-	startRow := max(0, (height-len(fgLines))/centerDivisor)
-	startCol := max(0, (width-fgWidth)/centerDivisor)
-	return startCol, startRow
+	return fgWidth, len(fgLines)
 }
 
 func center(background, foreground string, width, height int) string {

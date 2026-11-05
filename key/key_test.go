@@ -71,3 +71,55 @@ func TestRendererWrapsAtWidth(t *testing.T) {
 	lines := strings.Split(ansi.Strip(got), "\n")
 	require.Len(t, lines, 2)
 }
+
+// Every cell a hint claims must spell out exactly that hint's rendered text,
+// and the cells between hints must belong to none.
+func TestRendererHintAtMatchesRender(t *testing.T) {
+	hints := []key.Hint{
+		{Key: "enter", Desc: "show"},
+		{Key: "space", Desc: "select"},
+		{Key: "/", Desc: "filter"},
+		{Key: "c", Desc: "comment"},
+		{Key: "alt+c", Desc: "copy"},
+		{Key: "r", Desc: "refresh " + lg.NewStyle().Bold(true).Render("off")},
+		{Key: "?", Desc: "help"},
+	}
+	want := []string{
+		"enter show", "space select", "/ filter", "comment", "alt+copy", "refresh off", "? help",
+	}
+	empty := ""
+	for _, prefix := range []*string{nil, &empty} {
+		for _, width := range []int{0, 12, 20, 33, 80} {
+			r := key.Renderer{
+				Styles: key.Styles{Key: lg.NewStyle().Bold(true), Text: lg.NewStyle()},
+				Prefix: prefix,
+				Width:  width,
+				Inline: true,
+			}
+			lines := strings.Split(ansi.Strip(r.Render(hints)), "\n")
+			got := make([]string, len(hints))
+			for y, line := range lines {
+				for x := range ansi.StringWidth(line) + 2 {
+					i, ok := r.HintAt(hints, x, y)
+					if !ok {
+						continue
+					}
+					got[i] += ansi.Cut(line, x, x+1)
+				}
+			}
+			require.Equal(t, want, got, "width=%d prefix=%v", width, prefix != nil)
+		}
+	}
+}
+
+func TestRendererHintAtMissesOutsideHints(t *testing.T) {
+	r := key.Renderer{Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()}, Width: 80}
+	hints := []key.Hint{{Key: "a", Desc: "approve"}, {Key: "b", Desc: "back"}}
+	for _, at := range [][2]int{{0, 0}, {10, 0}, {11, 0}, {18, 0}, {5, 1}, {-1, 0}} {
+		_, ok := r.HintAt(hints, at[0], at[1])
+		require.False(t, ok, "x=%d y=%d", at[0], at[1])
+	}
+	i, ok := r.HintAt(hints, 12, 0)
+	require.True(t, ok)
+	require.Equal(t, 1, i)
+}

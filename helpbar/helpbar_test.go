@@ -55,3 +55,23 @@ func TestModelRenderPreservesANSIInDescription(t *testing.T) {
 
 	require.Equal(t, " r refresh on", ansi.Strip(m.Render()))
 }
+
+func TestModelHintAtReturnsTheClickedHint(t *testing.T) {
+	m := helpbar.Model{
+		Hints: []key.Hint{
+			{Key: "a", Desc: "approve"},
+			{Key: "c", Desc: "comment"},
+		},
+		Renderer: key.Renderer{
+			Styles: key.Styles{Key: lg.NewStyle(), Text: lg.NewStyle()},
+			Width:  12,
+			Inline: true,
+		},
+	}
+
+	hint, ok := m.HintAt(0, 1)
+	require.True(t, ok)
+	require.Equal(t, key.Hint{Key: "c", Desc: "comment"}, hint)
+	_, ok = m.HintAt(0, 0)
+	require.False(t, ok, "the prefix is not part of a hint")
+}

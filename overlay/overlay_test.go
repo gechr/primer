@@ -47,3 +47,21 @@ func TestOriginMatchesPlace(t *testing.T) {
 	require.Equal(t, 0, x)
 	require.Equal(t, 0, y)
 }
+
+// Contains must claim exactly the cells Place draws the foreground over.
+func TestContainsMatchesPlace(t *testing.T) {
+	t.Parallel()
+
+	const width, height = 9, 6
+	fg := "abcd\nwxyz"
+	bg := strings.TrimSuffix(strings.Repeat(strings.Repeat(".", width)+"\n", height), "\n")
+	lines := strings.Split(ansi.Strip(overlay.Place(bg, fg, width, height, overlay.Center)), "\n")
+	for y, line := range lines {
+		for x := range width {
+			drawn := ansi.Cut(line, x, x+1) != "."
+			inside := overlay.Contains(fg, width, height, overlay.Center, x, y)
+			require.Equal(t, drawn, inside, "x=%d y=%d", x, y)
+		}
+	}
+	require.False(t, overlay.Contains(fg, width, height, overlay.Center, -1, 0))
+}

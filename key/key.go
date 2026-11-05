@@ -29,7 +29,35 @@ type Renderer struct {
 	Inline bool
 }
 
+// hintSpan is where one rendered hint sits: columns [start, end) of line.
+type hintSpan struct {
+	hint  int
+	line  int
+	start int
+	end   int
+}
+
 func (r Renderer) Render(hints []Hint) string {
+	lines, _ := r.layout(hints)
+	return strings.Join(lines, nl)
+}
+
+// HintAt returns the index of the hint drawn at column x of line y in Render's
+// output. The whole "key desc" part is the target, so a click anywhere on it
+// counts; the gap between parts belongs to no hint.
+func (r Renderer) HintAt(hints []Hint, x, y int) (int, bool) {
+	_, spans := r.layout(hints)
+	for _, s := range spans {
+		if s.line == y && x >= s.start && x < s.end {
+			return s.hint, true
+		}
+	}
+	return 0, false
+}
+
+// layout renders the hint parts into lines and records where each part lands,
+// so Render and HintAt always agree.
+func (r Renderer) layout(hints []Hint) ([]string, []hintSpan) {
 	parts := make([]string, 0, len(hints))
 	gap := r.Gap
 	if gap == "" {
@@ -54,21 +82,34 @@ func (r Renderer) Render(hints []Hint) string {
 		prefix = *r.Prefix
 	}
 
+	gapWidth := lg.Width(gap)
+	spans := make([]hintSpan, 0, len(parts))
+
 	if r.Width <= 0 {
-		return prefix + strings.Join(parts, gap)
+		x := lg.Width(prefix)
+		for i, part := range parts {
+			if i > 0 {
+				x += gapWidth
+			}
+			spans = append(spans, hintSpan{hint: i, start: x, end: x + lg.Width(part)})
+			x = spans[i].end
+		}
+		return []string{prefix + strings.Join(parts, gap)}, spans
 	}
 
 	indent := prefix
 	var lines []string
 	var line string
 	lineWidth := len(indent)
-	gapWidth := lg.Width(gap)
+	x := 0 // display column where the next part's gap begins
 	for i, part := range parts {
 		partWidth := lg.Width(part)
+		var start int
 		switch {
 		case i == 0:
 			line = indent + part
 			lineWidth = len(indent) + partWidth
+			start = lg.Width(indent)
 		case lineWidth+gapWidth+partWidth > r.Width:
 			lines = append(lines, line)
 			line = part
@@ -76,12 +117,15 @@ func (r Renderer) Render(hints []Hint) string {
 		default:
 			line += gap + part
 			lineWidth += gapWidth + partWidth
+			start = x + gapWidth
 		}
+		x = start + partWidth
+		spans = append(spans, hintSpan{hint: i, line: len(lines), start: start, end: x})
 	}
 	if line != "" {
 		lines = append(lines, line)
 	}
-	return strings.Join(lines, nl)
+	return lines, spans
 }
 
 // Inline highlights the key inside the description when it is a single-letter suffix.
