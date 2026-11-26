@@ -7,12 +7,12 @@ tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 require (
 	charm.land/bubbles/v2 v2.2.1
-	charm.land/bubbletea/v2 v2.1.1
+	charm.land/bubbletea/v2 v2.1.2
 	charm.land/glamour/v2 v2.0.1
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.1.1
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/charmbracelet/x/ansi v0.11.9
+	github.com/charmbracelet/x/ansi v0.11.10
 	github.com/gechr/gorules v0.0.5
 	github.com/gechr/x v0.7.2
 	github.com/quasilyte/go-ruleguard/dsl v0.3.23
