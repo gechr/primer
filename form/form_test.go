@@ -546,3 +546,28 @@ func TestFocusAtPlacesMultilineCursorByRow(t *testing.T) {
 	typeText(t, &m, "!")
 	require.Equal(t, "alpha\nbra!vo\ncharlie", m.Value(0))
 }
+
+func TestSetWidthPreservesFocusedCursor(t *testing.T) {
+	t.Parallel()
+	m := form.New(form.Config{
+		Width: 60,
+		Fields: []form.FieldSpec{
+			{Label: "Name", Initial: "sample"},
+			{Label: "Mode", Options: []string{"one", "two"}, Initial: "two"},
+			{Label: "Notes", Multiline: true, Initial: "alpha\nbravo"},
+		},
+	})
+	m.SetWidth(24)
+	require.Equal(t, 24, lg.Width(m.Body()))
+	press(t, &m, shTab)
+	top, _, ok := m.FocusRegion()
+	require.True(t, ok)
+	require.True(t, m.FocusAt(5, top+3)) // second line of the notes field
+	row, ok := m.FocusedRow()
+	require.True(t, ok)
+	require.Equal(t, top+3, row)
+	m.SetWidth(50)
+	require.Equal(t, 50, lg.Width(m.Body()))
+	typeText(t, &m, "!")
+	require.Equal(t, []string{"sample", "two", "alpha\nbra!vo"}, m.Values())
+}

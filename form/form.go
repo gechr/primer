@@ -210,6 +210,27 @@ func New(cfg Config) Model {
 	return m
 }
 
+// SetWidth resizes the form and its text fields in place, preserving the draft,
+// cursor, focus and validation state. Width includes the field's frame.
+func (m *Model) SetWidth(width int) {
+	if width == m.width {
+		return
+	}
+	m.width = width
+	inner := max(1, width-titlebox.Chrome)
+	for i := range m.fields {
+		f := &m.fields[i]
+		switch {
+		case f.isCycle():
+			continue
+		case f.spec.Multiline:
+			f.area.SetWidth(inner)
+		default:
+			f.line.SetWidth(inner)
+		}
+	}
+}
+
 // AcceptedDetail returns the Detail of the suggestion last accepted into field
 // i (empty when none was accepted, or a later edit invalidated it). The owner
 // uses it to recover the opaque value behind a display label - a user's ID,
@@ -612,6 +633,23 @@ func (m *Model) FocusRegion() (int, int, bool) {
 		top += strings.Count(m.fieldBlock(i), "\n")
 	}
 	return top, strings.Count(m.fieldBlock(m.focus), "\n"), true
+}
+
+// FocusedRow returns the body row to keep visible when the focused field
+// itself is taller than the viewport. For a textarea it follows the caret.
+func (m *Model) FocusedRow() (int, bool) {
+	top, _, ok := m.FocusRegion()
+	if !ok {
+		return 0, false
+	}
+	f := &m.fields[m.focus]
+	if f.spec.Multiline && !f.isCycle() {
+		if m.focus > 0 {
+			top++ // blank separator before the text box
+		}
+		top += 1 + f.area.CursorRow() // top border and visible text row
+	}
+	return top, true
 }
 
 // footRow is the bottom line: the submitting indicator while an async submit is

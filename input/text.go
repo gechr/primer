@@ -133,6 +133,21 @@ func (a *Area) Focus() { a.ta.Focus() }
 // Blur removes focus (the cursor stops rendering).
 func (a *Area) Blur() { a.ta.Blur() }
 
+// CursorRow reports the caret's visible row within the focused textarea.
+func (a *Area) CursorRow() int {
+	// Ask the same widget that draws the virtual cursor for its terminal
+	// cursor coordinates. Only the copy changes cursor mode.
+	area := a.ta
+	area.SetVirtualCursor(false)
+	if cursor := area.Cursor(); cursor != nil {
+		return cursor.Y
+	}
+	return 0
+}
+
+// SetWidth reflows the text at width without moving the editing cursor.
+func (a *Area) SetWidth(width int) { a.ta.SetWidth(max(1, width)) }
+
 // SetValue replaces the content (e.g. reopening a draft).
 func (a *Area) SetValue(s string) { a.ta.SetValue(s) }
 
